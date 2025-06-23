@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Download, FileText, Undo, Redo, Save } from 'lucide-react';
+import { Download, FileText, Undo, Redo, Save, Plus, Trash } from 'lucide-react';
 import { ScheduleItem } from '@/types/auth';
 
 export const DailyPlanner: React.FC = () => {
@@ -131,6 +130,81 @@ export const DailyPlanner: React.FC = () => {
     setSchedule(newSchedule);
   };
 
+  const handleAddRow = () => {
+    pushToUndo(schedule);
+    
+    const newSchedule = [...schedule];
+    const lastItem = newSchedule[newSchedule.length - 1];
+    const newStartTime = lastItem ? lastItem.end : '6:00 AM';
+    const newEndTime = addMinutesToTime(newStartTime, 60); // Default 1 hour duration
+    
+    const newItem: ScheduleItem = {
+      start: newStartTime,
+      end: newEndTime,
+      task: ''
+    };
+    
+    newSchedule.push(newItem);
+    setSchedule(newSchedule);
+    
+    toast({
+      title: "Row added",
+      description: "New schedule item has been added.",
+    });
+  };
+
+  const handleDeleteRow = (index: number) => {
+    if (schedule.length <= 1) {
+      toast({
+        title: "Cannot delete",
+        description: "At least one schedule item must remain.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    pushToUndo(schedule);
+    
+    const newSchedule = [...schedule];
+    const deletedItem = newSchedule[index];
+    
+    // Store original durations before deletion
+    const originalDurations = newSchedule.map((item, i) => 
+      i < newSchedule.length - 1 ? calculateDuration(item.start, item.end) : 0
+    );
+    
+    // Remove the item
+    newSchedule.splice(index, 1);
+    
+    // Adjust following items if not deleting the last item
+    if (index < newSchedule.length) {
+      // Set the start time of the next item to the deleted item's start time
+      newSchedule[index].start = deletedItem.start;
+      
+      // Recalculate end time using original duration
+      if (index < newSchedule.length - 1) {
+        const duration = originalDurations[index + 1]; // +1 because we removed an item
+        newSchedule[index].end = addMinutesToTime(newSchedule[index].start, duration);
+      }
+      
+      // Update all subsequent rows
+      for (let i = index + 1; i < newSchedule.length; i++) {
+        newSchedule[i].start = newSchedule[i - 1].end;
+        if (i < newSchedule.length - 1) {
+          const duration = originalDurations[i + 1]; // +1 because we removed an item
+          newSchedule[i].end = addMinutesToTime(newSchedule[i].start, duration);
+        }
+      }
+    }
+    
+    setSchedule(newSchedule);
+    
+    toast({
+      title: "Row deleted",
+      description: "Schedule item has been removed.",
+    });
+  };
+
   const handleUndo = () => {
     if (undoStack.length > 0) {
       const previousState = undoStack[undoStack.length - 1];
@@ -245,6 +319,10 @@ export const DailyPlanner: React.FC = () => {
               <Redo className="h-4 w-4 mr-2" />
               Redo
             </Button>
+            <Button onClick={handleAddRow} variant="outline" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Row
+            </Button>
             <Button onClick={handleSave} variant="default" size="sm">
               <Save className="h-4 w-4 mr-2" />
               Save
@@ -266,6 +344,7 @@ export const DailyPlanner: React.FC = () => {
                 <tr className="bg-gray-900 text-white">
                   <th className="border border-gray-300 p-3 text-left font-bold">TIMINGS</th>
                   <th className="border border-gray-300 p-3 text-left font-bold">PLAN</th>
+                  <th className="border border-gray-300 p-3 text-center font-bold w-16">ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -295,6 +374,17 @@ export const DailyPlanner: React.FC = () => {
                         className="w-full border-0 focus:ring-0 focus:outline-none bg-transparent"
                         placeholder="Enter your activity"
                       />
+                    </td>
+                    <td className="border border-gray-300 p-2 text-center">
+                      <Button
+                        onClick={() => handleDeleteRow(index)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
+                        disabled={schedule.length <= 1}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
