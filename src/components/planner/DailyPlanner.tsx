@@ -20,81 +20,103 @@ export const DailyPlanner: React.FC = () => {
     }
   }, [user]);
 
-  const parseTime = (timeStr: string): { hours: number; minutes: number; isPM: boolean } => {
-    const [time, period] = timeStr.split(' ');
-    const [hours, minutes] = time.split(':').map(Number);
-    return {
-      hours: hours === 12 ? 0 : hours,
-      minutes: minutes || 0,
-      isPM: period === 'PM'
-    };
+  // Convert 12-hour format to 24-hour format for input[type="time"]
+  const convertTo24Hour = (time12h: string): string => {
+    const [time, period] = time12h.split(' ');
+    const [hours, minutes] = time.split(':');
+    let hour24 = parseInt(hours);
+    
+    if (period === 'AM' && hour24 === 12) hour24 = 0;
+    if (period === 'PM' && hour24 !== 12) hour24 += 12;
+    
+    return `${hour24.toString().padStart(2, '0')}:${minutes}`;
   };
 
-  const formatTime = (hours: number, minutes: number): string => {
-    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-    const period = hours >= 12 ? 'PM' : 'AM';
-    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  // Convert 24-hour format to 12-hour format
+  const convertTo12Hour = (time24h: string): string => {
+    const [hours, minutes] = time24h.split(':');
+    let hour = parseInt(hours);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    
+    if (hour === 0) hour = 12;
+    if (hour > 12) hour -= 12;
+    
+    return `${hour}:${minutes} ${period}`;
   };
 
   const calculateDuration = (start: string, end: string): number => {
-    const startTime = parseTime(start);
-    const endTime = parseTime(end);
+    const startTime = convertTo24Hour(start);
+    const endTime = convertTo24Hour(end);
     
-    let startMinutes = (startTime.isPM ? startTime.hours + 12 : startTime.hours) * 60 + startTime.minutes;
-    let endMinutes = (endTime.isPM ? endTime.hours + 12 : endTime.hours) * 60 + endTime.minutes;
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
     
-    if (endMinutes < startMinutes) {
-      endMinutes += 24 * 60; // Next day
+    let startTotalMinutes = startHours * 60 + startMinutes;
+    let endTotalMinutes = endHours * 60 + endMinutes;
+    
+    if (endTotalMinutes < startTotalMinutes) {
+      endTotalMinutes += 24 * 60; // Next day
     }
     
-    return endMinutes - startMinutes;
+    return endTotalMinutes - startTotalMinutes;
   };
 
-  const addMinutes = (timeStr: string, minutes: number): string => {
-    const time = parseTime(timeStr);
-    let totalMinutes = (time.isPM ? time.hours + 12 : time.hours) * 60 + time.minutes + minutes;
+  const addMinutesToTime = (time: string, minutes: number): string => {
+    const time24h = convertTo24Hour(time);
+    const [hours, mins] = time24h.split(':').map(Number);
     
+    let totalMinutes = hours * 60 + mins + minutes;
     totalMinutes = totalMinutes % (24 * 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
     
-    return formatTime(hours, mins);
+    const newHours = Math.floor(totalMinutes / 60);
+    const newMinutes = totalMinutes % 60;
+    
+    const newTime24h = `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
+    return convertTo12Hour(newTime24h);
   };
 
   const pushToUndo = (currentSchedule: ScheduleItem[]) => {
-    setUndoStack(prev => [...prev, currentSchedule]);
+    setUndoStack(prev => [...prev, [...currentSchedule]]);
     setRedoStack([]);
   };
 
   const handleTimeChange = (index: number, field: 'start' | 'end', value: string) => {
-    if (!value.match(/^\d{1,2}:\d{2} (AM|PM)$/)) return;
+    if (!value) return;
 
     pushToUndo(schedule);
     
     const newSchedule = [...schedule];
+    const time12h = convertTo12Hour(value);
+    
+    // Store original durations before making changes
     const originalDurations = schedule.map((item, i) => 
       i < schedule.length - 1 ? calculateDuration(item.start, item.end) : 0
     );
 
-    newSchedule[index] = { ...newSchedule[index], [field]: value };
+    newSchedule[index] = { ...newSchedule[index], [field]: time12h };
 
-    if (field === 'start' && index < newSchedule.length - 1) {
-      const duration = originalDurations[index];
-      newSchedule[index].end = addMinutes(value, duration);
+    if (field === 'start') {
+      // When start time changes, maintain the original duration
+      if (index < newSchedule.length - 1) {
+        const duration = originalDurations[index];
+        newSchedule[index].end = addMinutesToTime(time12h, duration);
+      }
       
-      // Update subsequent rows
+      // Update all subsequent rows
       for (let i = index + 1; i < newSchedule.length; i++) {
         newSchedule[i].start = newSchedule[i - 1].end;
         if (i < newSchedule.length - 1) {
-          newSchedule[i].end = addMinutes(newSchedule[i].start, originalDurations[i]);
+          const duration = originalDurations[i];
+          newSchedule[i].end = addMinutesToTime(newSchedule[i].start, duration);
         }
       }
-    } else if (field === 'end' && index < newSchedule.length - 1) {
-      // Update subsequent rows
+    } else if (field === 'end') {
+      // When end time changes, update all subsequent rows
       for (let i = index + 1; i < newSchedule.length; i++) {
         newSchedule[i].start = newSchedule[i - 1].end;
         if (i < newSchedule.length - 1) {
-          newSchedule[i].end = addMinutes(newSchedule[i].start, originalDurations[i]);
+          const duration = originalDurations[i];
+          newSchedule[i].end = addMinutesToTime(newSchedule[i].start, duration);
         }
       }
     }
@@ -112,7 +134,7 @@ export const DailyPlanner: React.FC = () => {
   const handleUndo = () => {
     if (undoStack.length > 0) {
       const previousState = undoStack[undoStack.length - 1];
-      setRedoStack(prev => [...prev, schedule]);
+      setRedoStack(prev => [...prev, [...schedule]]);
       setUndoStack(prev => prev.slice(0, -1));
       setSchedule(previousState);
     }
@@ -121,7 +143,7 @@ export const DailyPlanner: React.FC = () => {
   const handleRedo = () => {
     if (redoStack.length > 0) {
       const nextState = redoStack[redoStack.length - 1];
-      setUndoStack(prev => [...prev, schedule]);
+      setUndoStack(prev => [...prev, [...schedule]]);
       setRedoStack(prev => prev.slice(0, -1));
       setSchedule(nextState);
     }
@@ -136,39 +158,57 @@ export const DailyPlanner: React.FC = () => {
   };
 
   const exportToPDF = async () => {
-    const { jsPDF } = await import('jspdf');
-    const html2canvas = (await import('html2canvas')).default;
-    
-    const printElement = document.getElementById('print-area');
-    if (!printElement) return;
-
-    const canvas = await html2canvas(printElement);
-    const imgData = canvas.toDataURL('image/png');
-    
-    const pdf = new jsPDF();
-    const imgWidth = 210;
-    const pageHeight = 295;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
-    
-    let position = 0;
-    
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-    
-    while (heightLeft >= 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+    try {
+      const { jsPDF } = await import('jspdf');
+      
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 20;
+      let yPosition = 30;
+      
+      // Title
+      pdf.setFontSize(20);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('📅 DAILY SCHEDULE', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 20;
+      
+      // Table headers
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('TIMINGS', margin, yPosition);
+      pdf.text('PLAN', margin + 80, yPosition);
+      
+      yPosition += 10;
+      
+      // Table content
+      pdf.setFont(undefined, 'normal');
+      schedule.forEach((item) => {
+        pdf.text(`${item.start} - ${item.end}`, margin, yPosition);
+        pdf.text(item.task, margin + 80, yPosition);
+        yPosition += 15;
+        
+        // Add new page if needed
+        if (yPosition > 270) {
+          pdf.addPage();
+          yPosition = 30;
+        }
+      });
+      
+      pdf.save('Daily_Schedule.pdf');
+      
+      toast({
+        title: "PDF exported!",
+        description: "Your schedule has been downloaded as PDF.",
+      });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error creating the PDF. Please try again.",
+        variant: "destructive"
+      });
     }
-    
-    pdf.save('Daily_Schedule.pdf');
-    
-    toast({
-      title: "PDF exported!",
-      description: "Your schedule has been downloaded as PDF.",
-    });
   };
 
   const exportToExcel = () => {
@@ -233,18 +273,18 @@ export const DailyPlanner: React.FC = () => {
                   <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                     <td className="border border-gray-300 p-2">
                       <div className="flex gap-2 items-center">
-                        <Input
-                          value={item.start}
+                        <input
+                          type="time"
+                          value={convertTo24Hour(item.start)}
                           onChange={(e) => handleTimeChange(index, 'start', e.target.value)}
-                          className="w-24 text-sm"
-                          placeholder="6:00 AM"
+                          className="w-20 text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
-                        <span>-</span>
-                        <Input
-                          value={item.end}
+                        <span className="text-gray-500">-</span>
+                        <input
+                          type="time"
+                          value={convertTo24Hour(item.end)}
                           onChange={(e) => handleTimeChange(index, 'end', e.target.value)}
-                          className="w-24 text-sm"
-                          placeholder="9:00 AM"
+                          className="w-20 text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     </td>
@@ -252,7 +292,7 @@ export const DailyPlanner: React.FC = () => {
                       <Input
                         value={item.task}
                         onChange={(e) => handleTaskChange(index, e.target.value)}
-                        className="w-full"
+                        className="w-full border-0 focus:ring-0 focus:outline-none bg-transparent"
                         placeholder="Enter your activity"
                       />
                     </td>
@@ -263,29 +303,6 @@ export const DailyPlanner: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Hidden print area for PDF export */}
-      <div id="print-area" className="hidden">
-        <div className="p-8 bg-white">
-          <h1 className="text-3xl font-bold text-center mb-8">📅 DAILY SCHEDULE</h1>
-          <table className="w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-900 text-white">
-                <th className="border border-gray-300 p-4 text-left font-bold">TIMINGS</th>
-                <th className="border border-gray-300 p-4 text-left font-bold">PLAN</th>
-              </tr>
-            </thead>
-            <tbody>
-              {schedule.map((item, index) => (
-                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="border border-gray-300 p-4">{item.start} - {item.end}</td>
-                  <td className="border border-gray-300 p-4">{item.task}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 };
