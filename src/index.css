@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -100,4 +101,56 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Enhanced time input field styling */
+.time-field {
+  width: 130px !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+  padding: 6px 8px !important;
+  border: 1px solid #ccc !important;
+  border-radius: 6px !important;
+  min-width: 130px !important;
+}
+
+.time-field:focus {
+  outline: none !important;
+  ring: 2px !important;
+  ring-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Mobile responsiveness for time fields */
+@media (max-width: 768px) {
+  .time-field {
+    width: 110px !important;
+    min-width: 110px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* Print area styling */
+#print-area {
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+#print-area th, #print-area td {
+  border: 1px solid #999 !important;
+  padding: 8px 12px !important;
+  text-align: left !important;
+}
+
+#print-area tr:nth-child(even) {
+  background-color: #f2f2f2 !important;
+}
+
+#print-area th {
+  background-color: #333 !important;
+  color: white !important;
+  text-transform: uppercase !important;
 }

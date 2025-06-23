@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -233,41 +234,52 @@ export const DailyPlanner: React.FC = () => {
 
   const exportToPDF = async () => {
     try {
+      const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
       
-      const pdf = new jsPDF();
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const margin = 20;
-      let yPosition = 30;
+      // Create and populate the print area
+      const printArea = document.getElementById('print-area');
+      if (!printArea) return;
       
-      // Title
-      pdf.setFontSize(20);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('📅 DAILY SCHEDULE', pageWidth / 2, yPosition, { align: 'center' });
+      // Clear and populate the print area with current schedule
+      printArea.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px; font-size: 24px; font-weight: bold;">
+          📅 DAILY SCHEDULE
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-family: 'Poppins', sans-serif; font-size: 14px;">
+          <thead>
+            <tr style="background-color: #333; color: white;">
+              <th style="border: 1px solid #999; padding: 12px; text-align: left; text-transform: uppercase; font-weight: bold;">TIMINGS</th>
+              <th style="border: 1px solid #999; padding: 12px; text-align: left; text-transform: uppercase; font-weight: bold;">PLAN</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${schedule.map((item, index) => `
+              <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f2f2f2'};">
+                <td style="border: 1px solid #999; padding: 12px; font-weight: 500;">${item.start} - ${item.end}</td>
+                <td style="border: 1px solid #999; padding: 12px;">${item.task}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
       
-      yPosition += 20;
-      
-      // Table headers
-      pdf.setFontSize(12);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('TIMINGS', margin, yPosition);
-      pdf.text('PLAN', margin + 80, yPosition);
-      
-      yPosition += 10;
-      
-      // Table content
-      pdf.setFont(undefined, 'normal');
-      schedule.forEach((item) => {
-        pdf.text(`${item.start} - ${item.end}`, margin, yPosition);
-        pdf.text(item.task, margin + 80, yPosition);
-        yPosition += 15;
-        
-        // Add new page if needed
-        if (yPosition > 270) {
-          pdf.addPage();
-          yPosition = 30;
-        }
+      // Generate PDF from the print area
+      const canvas = await html2canvas(printArea, { 
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true
       });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth - 20; // 10mm margin on each side
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Add image to PDF with proper positioning
+      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, Math.min(imgHeight, pdfHeight - 20));
       
       pdf.save('Daily_Schedule.pdf');
       
@@ -306,93 +318,124 @@ export const DailyPlanner: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">📅 DAILY SCHEDULE</CardTitle>
-          <div className="flex flex-wrap gap-2 justify-center">
-            <Button onClick={handleUndo} disabled={undoStack.length === 0} variant="outline" size="sm">
-              <Undo className="h-4 w-4 mr-2" />
-              Undo
-            </Button>
-            <Button onClick={handleRedo} disabled={redoStack.length === 0} variant="outline" size="sm">
-              <Redo className="h-4 w-4 mr-2" />
-              Redo
-            </Button>
-            <Button onClick={handleAddRow} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Row
-            </Button>
-            <Button onClick={handleSave} variant="default" size="sm">
-              <Save className="h-4 w-4 mr-2" />
-              Save
-            </Button>
-            <Button onClick={exportToPDF} variant="outline" size="sm">
-              <FileText className="h-4 w-4 mr-2" />
-              PDF
-            </Button>
-            <Button onClick={exportToExcel} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Excel
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300 rounded-lg overflow-hidden shadow-sm">
-              <thead>
-                <tr className="bg-gray-900 text-white">
-                  <th className="border border-gray-300 p-3 text-left font-bold">TIMINGS</th>
-                  <th className="border border-gray-300 p-3 text-left font-bold">PLAN</th>
-                  <th className="border border-gray-300 p-3 text-center font-bold w-16">ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedule.map((item, index) => (
-                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="border border-gray-300 p-2">
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="time"
-                          value={convertTo24Hour(item.start)}
-                          onChange={(e) => handleTimeChange(index, 'start', e.target.value)}
-                          className="w-20 text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <span className="text-gray-500">-</span>
-                        <input
-                          type="time"
-                          value={convertTo24Hour(item.end)}
-                          onChange={(e) => handleTimeChange(index, 'end', e.target.value)}
-                          className="w-20 text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      <Input
-                        value={item.task}
-                        onChange={(e) => handleTaskChange(index, e.target.value)}
-                        className="w-full border-0 focus:ring-0 focus:outline-none bg-transparent"
-                        placeholder="Enter your activity"
-                      />
-                    </td>
-                    <td className="border border-gray-300 p-2 text-center">
-                      <Button
-                        onClick={() => handleDeleteRow(index)}
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
-                        disabled={schedule.length <= 1}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </td>
+    <>
+      {/* Hidden print area for PDF export */}
+      <div 
+        id="print-area" 
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: '-9999px',
+          width: '800px',
+          backgroundColor: '#ffffff',
+          padding: '20px'
+        }}
+      />
+      
+      <div className="container mx-auto p-6 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center">📅 DAILY SCHEDULE</CardTitle>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <Button onClick={handleUndo} disabled={undoStack.length === 0} variant="outline" size="sm">
+                <Undo className="h-4 w-4 mr-2" />
+                Undo
+              </Button>
+              <Button onClick={handleRedo} disabled={redoStack.length === 0} variant="outline" size="sm">
+                <Redo className="h-4 w-4 mr-2" />
+                Redo
+              </Button>
+              <Button onClick={handleAddRow} variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Row
+              </Button>
+              <Button onClick={handleSave} variant="default" size="sm">
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </Button>
+              <Button onClick={exportToPDF} variant="outline" size="sm">
+                <FileText className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
+              <Button onClick={exportToExcel} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Excel
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300 rounded-lg overflow-hidden shadow-sm">
+                <thead>
+                  <tr className="bg-gray-900 text-white">
+                    <th className="border border-gray-300 p-3 text-left font-bold">TIMINGS</th>
+                    <th className="border border-gray-300 p-3 text-left font-bold">PLAN</th>
+                    <th className="border border-gray-300 p-3 text-center font-bold w-16">ACTION</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                </thead>
+                <tbody>
+                  {schedule.map((item, index) => (
+                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="border border-gray-300 p-2">
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="time"
+                            value={convertTo24Hour(item.start)}
+                            onChange={(e) => handleTimeChange(index, 'start', e.target.value)}
+                            className="time-field w-32 font-bold text-base px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            style={{
+                              minWidth: '130px',
+                              fontWeight: 'bold',
+                              fontSize: '16px',
+                              padding: '6px 8px',
+                              border: '1px solid #ccc',
+                              borderRadius: '6px'
+                            }}
+                          />
+                          <span className="text-gray-500 font-bold">-</span>
+                          <input
+                            type="time"
+                            value={convertTo24Hour(item.end)}
+                            onChange={(e) => handleTimeChange(index, 'end', e.target.value)}
+                            className="time-field w-32 font-bold text-base px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            style={{
+                              minWidth: '130px',
+                              fontWeight: 'bold',
+                              fontSize: '16px',
+                              padding: '6px 8px',
+                              border: '1px solid #ccc',
+                              borderRadius: '6px'
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <Input
+                          value={item.task}
+                          onChange={(e) => handleTaskChange(index, e.target.value)}
+                          className="w-full border-0 focus:ring-0 focus:outline-none bg-transparent"
+                          placeholder="Enter your activity"
+                        />
+                      </td>
+                      <td className="border border-gray-300 p-2 text-center">
+                        <Button
+                          onClick={() => handleDeleteRow(index)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
+                          disabled={schedule.length <= 1}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 };
