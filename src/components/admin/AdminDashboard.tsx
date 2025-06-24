@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@/types/auth';
 import { Users, Calendar, Download, FileText, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { AccountSettings } from './AccountSettings';
 
 export const AdminDashboard: React.FC = () => {
   const { getAllUsers, user } = useAuth();
@@ -82,6 +83,8 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <AccountSettings />
+      
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

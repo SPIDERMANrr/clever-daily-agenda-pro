@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState } from '@/types/auth';
 
@@ -7,6 +6,8 @@ interface AuthContextType extends AuthState {
   register: (username: string, email: string, password: string, role?: 'user' | 'admin') => Promise<boolean>;
   logout: () => void;
   updateUserSchedule: (schedule: any[], userId?: string) => void;
+  updateUserEmail: (newEmail: string) => Promise<boolean>;
+  updateUserPassword: (newPassword: string) => Promise<boolean>;
   getAllUsers: () => User[];
   isLoading: boolean;
 }
@@ -203,6 +204,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('✅ Schedule updated successfully');
   };
 
+  const updateUserEmail = async (newEmail: string): Promise<boolean> => {
+    if (!authState.user) {
+      console.log('❌ No authenticated user for email update');
+      return false;
+    }
+
+    console.log('📧 Updating email for user:', authState.user.id, 'to:', newEmail);
+
+    // Check if email already exists
+    const emailExists = authState.users.some(u => u.email === newEmail && u.id !== authState.user?.id);
+    if (emailExists) {
+      console.log('❌ Email already exists:', newEmail);
+      return false;
+    }
+
+    try {
+      const updatedUsers = authState.users.map(user => {
+        if (user.id === authState.user?.id) {
+          return {
+            ...user,
+            email: newEmail,
+            lastEdited: new Date().toISOString()
+          };
+        }
+        return user;
+      });
+
+      const updatedUser = updatedUsers.find(u => u.id === authState.user?.id);
+      if (updatedUser) {
+        setAuthState(prev => ({ ...prev, user: updatedUser, users: updatedUsers }));
+        saveAuthState(updatedUser, true);
+        saveUsers(updatedUsers);
+        console.log('✅ Email updated successfully');
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ Error updating email:', error);
+    }
+
+    return false;
+  };
+
+  const updateUserPassword = async (newPassword: string): Promise<boolean> => {
+    if (!authState.user) {
+      console.log('❌ No authenticated user for password update');
+      return false;
+    }
+
+    console.log('🔒 Updating password for user:', authState.user.id);
+
+    try {
+      const updatedUsers = authState.users.map(user => {
+        if (user.id === authState.user?.id) {
+          return {
+            ...user,
+            password: newPassword,
+            lastEdited: new Date().toISOString()
+          };
+        }
+        return user;
+      });
+
+      const updatedUser = updatedUsers.find(u => u.id === authState.user?.id);
+      if (updatedUser) {
+        setAuthState(prev => ({ ...prev, user: updatedUser, users: updatedUsers }));
+        saveAuthState(updatedUser, true);
+        saveUsers(updatedUsers);
+        console.log('✅ Password updated successfully');
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ Error updating password:', error);
+    }
+
+    return false;
+  };
+
   const getAllUsers = () => authState.users;
 
   if (isLoading) {
@@ -223,6 +301,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       register,
       logout,
       updateUserSchedule,
+      updateUserEmail,
+      updateUserPassword,
       getAllUsers,
       isLoading
     }}>
