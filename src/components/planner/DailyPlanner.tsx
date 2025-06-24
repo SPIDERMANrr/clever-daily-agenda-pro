@@ -1,18 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Download, FileText, Undo, Redo, Save, Plus, Trash } from 'lucide-react';
+import { Download, FileText, Undo, Redo, Save, Plus, Trash, Sparkles } from 'lucide-react';
 import { ScheduleItem } from '@/types/auth';
+import { AIChat } from './AIChat';
+import { AIScheduleItem } from '@/services/aiScheduleService';
+import { convertAIScheduleToScheduleItems, validateScheduleItems, detectScheduleConflicts } from '@/utils/scheduleConverter';
 
 export const DailyPlanner: React.FC = () => {
   const { user, updateUserSchedule } = useAuth();
   const [schedule, setSchedule] = useState<ScheduleItem[]>(user?.schedule || []);
   const [undoStack, setUndoStack] = useState<ScheduleItem[][]>([]);
   const [redoStack, setRedoStack] = useState<ScheduleItem[][]>([]);
+  const [showAIChat, setShowAIChat] = useState(false);
 
   useEffect(() => {
     if (user?.schedule) {
@@ -80,6 +83,52 @@ export const DailyPlanner: React.FC = () => {
     setRedoStack([]);
   };
 
+  const handleAIScheduleGenerated = (aiSchedule: AIScheduleItem[]) => {
+    try {
+      const newScheduleItems = convertAIScheduleToScheduleItems(aiSchedule);
+      
+      if (!validateScheduleItems(newScheduleItems)) {
+        toast({
+          title: "Invalid schedule format",
+          description: "The AI generated an invalid schedule format. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const conflicts = detectScheduleConflicts(newScheduleItems);
+      if (conflicts.length > 0) {
+        toast({
+          title: "Schedule conflicts detected",
+          description: conflicts.join(', '),
+          variant: "destructive"
+        });
+      }
+
+      // Push current state to undo stack before applying AI changes
+      pushToUndo(schedule);
+      
+      // Apply the new AI-generated schedule with animation effect
+      setSchedule(newScheduleItems);
+      
+      // Hide the AI chat after successful generation
+      setShowAIChat(false);
+      
+      toast({
+        title: "AI Schedule Applied! ✨",
+        description: `Successfully generated ${newScheduleItems.length} schedule items.`,
+      });
+
+    } catch (error) {
+      console.error('Error applying AI schedule:', error);
+      toast({
+        title: "Error applying schedule",
+        description: "Failed to apply the AI-generated schedule. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleTimeChange = (index: number, field: 'start' | 'end', value: string) => {
     if (!value) return;
 
@@ -88,7 +137,6 @@ export const DailyPlanner: React.FC = () => {
     const newSchedule = [...schedule];
     const time12h = convertTo12Hour(value);
     
-    // Store original durations before making changes
     const originalDurations = schedule.map((item, i) => 
       i < schedule.length - 1 ? calculateDuration(item.start, item.end) : 0
     );
@@ -96,13 +144,11 @@ export const DailyPlanner: React.FC = () => {
     newSchedule[index] = { ...newSchedule[index], [field]: time12h };
 
     if (field === 'start') {
-      // When start time changes, maintain the original duration
       if (index < newSchedule.length - 1) {
         const duration = originalDurations[index];
         newSchedule[index].end = addMinutesToTime(time12h, duration);
       }
       
-      // Update all subsequent rows
       for (let i = index + 1; i < newSchedule.length; i++) {
         newSchedule[i].start = newSchedule[i - 1].end;
         if (i < newSchedule.length - 1) {
@@ -111,7 +157,6 @@ export const DailyPlanner: React.FC = () => {
         }
       }
     } else if (field === 'end') {
-      // When end time changes, update all subsequent rows
       for (let i = index + 1; i < newSchedule.length; i++) {
         newSchedule[i].start = newSchedule[i - 1].end;
         if (i < newSchedule.length - 1) {
@@ -137,7 +182,7 @@ export const DailyPlanner: React.FC = () => {
     const newSchedule = [...schedule];
     const lastItem = newSchedule[newSchedule.length - 1];
     const newStartTime = lastItem ? lastItem.end : '6:00 AM';
-    const newEndTime = addMinutesToTime(newStartTime, 60); // Default 1 hour duration
+    const newEndTime = addMinutesToTime(newStartTime, 60);
     
     const newItem: ScheduleItem = {
       start: newStartTime,
@@ -169,30 +214,24 @@ export const DailyPlanner: React.FC = () => {
     const newSchedule = [...schedule];
     const deletedItem = newSchedule[index];
     
-    // Store original durations before deletion
     const originalDurations = newSchedule.map((item, i) => 
       i < newSchedule.length - 1 ? calculateDuration(item.start, item.end) : 0
     );
     
-    // Remove the item
     newSchedule.splice(index, 1);
     
-    // Adjust following items if not deleting the last item
     if (index < newSchedule.length) {
-      // Set the start time of the next item to the deleted item's start time
       newSchedule[index].start = deletedItem.start;
       
-      // Recalculate end time using original duration
       if (index < newSchedule.length - 1) {
-        const duration = originalDurations[index + 1]; // +1 because we removed an item
+        const duration = originalDurations[index + 1];
         newSchedule[index].end = addMinutesToTime(newSchedule[index].start, duration);
       }
       
-      // Update all subsequent rows
       for (let i = index + 1; i < newSchedule.length; i++) {
         newSchedule[i].start = newSchedule[i - 1].end;
         if (i < newSchedule.length - 1) {
-          const duration = originalDurations[i + 1]; // +1 because we removed an item
+          const duration = originalDurations[i + 1];
           newSchedule[i].end = addMinutesToTime(newSchedule[i].start, duration);
         }
       }
@@ -237,11 +276,9 @@ export const DailyPlanner: React.FC = () => {
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
       
-      // Create and populate the print area
       const printArea = document.getElementById('print-area');
       if (!printArea) return;
       
-      // Clear and populate the print area with current schedule
       printArea.innerHTML = `
         <div style="text-align: center; margin-bottom: 20px; font-size: 24px; font-weight: bold;">
           📅 DAILY SCHEDULE
@@ -264,7 +301,6 @@ export const DailyPlanner: React.FC = () => {
         </table>
       `;
       
-      // Generate PDF from the print area
       const canvas = await html2canvas(printArea, { 
         scale: 2,
         backgroundColor: '#ffffff',
@@ -275,10 +311,9 @@ export const DailyPlanner: React.FC = () => {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth - 20; // 10mm margin on each side
+      const imgWidth = pdfWidth - 20;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      // Add image to PDF with proper positioning
       pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, Math.min(imgHeight, pdfHeight - 20));
       
       pdf.save('Daily_Schedule.pdf');
@@ -333,10 +368,26 @@ export const DailyPlanner: React.FC = () => {
       />
       
       <div className="container mx-auto p-6 space-y-6">
+        {/* AI Chat Section */}
+        {showAIChat && (
+          <div className="animate-fade-in">
+            <AIChat onScheduleGenerated={handleAIScheduleGenerated} />
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-center">📅 DAILY SCHEDULE</CardTitle>
             <div className="flex flex-wrap gap-2 justify-center">
+              <Button 
+                onClick={() => setShowAIChat(!showAIChat)}
+                variant={showAIChat ? "default" : "outline"}
+                size="sm"
+                className={showAIChat ? "bg-blue-600 hover:bg-blue-700" : "hover:bg-blue-50 border-blue-200"}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                🧠 Plan with AI
+              </Button>
               <Button onClick={handleUndo} disabled={undoStack.length === 0} variant="outline" size="sm">
                 <Undo className="h-4 w-4 mr-2" />
                 Undo
@@ -375,7 +426,7 @@ export const DailyPlanner: React.FC = () => {
                 </thead>
                 <tbody>
                   {schedule.map((item, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} transition-all duration-300 hover:bg-blue-50`}>
                       <td className="border border-gray-300 p-2">
                         <div className="flex gap-2 items-center">
                           <input
