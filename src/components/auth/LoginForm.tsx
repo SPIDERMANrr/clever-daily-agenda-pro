@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,18 +22,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     e.preventDefault();
     setIsLoading(true);
 
-    console.log('🔐 Login attempt for:', email);
-
     try {
       const success = await login(email, password);
       if (success) {
-        console.log('✅ Login successful');
         toast({
           title: "Welcome back!",
           description: "You have been logged in successfully.",
         });
       } else {
-        console.log('❌ Login failed');
         toast({
           title: "Login failed",
           description: "Invalid email or password. Please check your credentials and try again.",
@@ -40,7 +37,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         });
       }
     } catch (error) {
-      console.error('❌ Login error:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -139,14 +135,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
               className="text-violet-600 hover:text-violet-700 font-semibold hover:underline transition-colors duration-200"
               disabled={isLoading}
             >
-              Sign up
+              Register here
             </button>
           </p>
         </div>
 
         <div className="mt-4 text-center">
-          <p className="text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg font-['Inter']">
-            Demo: admin@planner.com / admin123
+          <p className="text-sm text-gray-500 font-['Inter']">
+            Need help?{' '}
+            <span className="text-violet-600 hover:text-violet-700 font-semibold cursor-pointer hover:underline transition-colors duration-200">
+              Contact support
+            </span>
           </p>
         </div>
       </CardContent>
