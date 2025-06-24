@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,21 +21,26 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     e.preventDefault();
     setIsLoading(true);
 
+    console.log('🔐 Login attempt for:', email);
+
     try {
       const success = await login(email, password);
       if (success) {
+        console.log('✅ Login successful');
         toast({
           title: "Welcome back!",
           description: "You have been logged in successfully.",
         });
       } else {
+        console.log('❌ Login failed');
         toast({
           title: "Login failed",
-          description: "Invalid credentials. Please try again.",
+          description: "Invalid email or password. Please check your credentials and try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('❌ Login error:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -73,6 +77,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10 h-12 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300 font-['Inter']"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -91,6 +96,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10 h-12 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300 font-['Inter']"
                 required
+                disabled={isLoading}
               />
               <Button
                 type="button"
@@ -98,6 +104,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
                 size="sm"
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-100 rounded-lg transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4 text-gray-400" />
@@ -110,7 +117,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 font-['Poppins']"
+            className="w-full h-12 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 font-['Poppins'] disabled:opacity-50 disabled:transform-none"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -130,6 +137,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
             <button
               onClick={onSwitchToRegister}
               className="text-violet-600 hover:text-violet-700 font-semibold hover:underline transition-colors duration-200"
+              disabled={isLoading}
             >
               Sign up
             </button>

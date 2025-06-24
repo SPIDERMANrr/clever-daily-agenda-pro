@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,23 +41,35 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
     }
 
     setIsLoading(true);
+    console.log('📝 Registration attempt for:', email);
 
     try {
       const success = await register(username, email, password);
       if (success) {
+        console.log('✅ Registration successful');
         toast({
-          title: "Account created!",
-          description: "Your account has been created successfully. Please sign in.",
+          title: "Account created successfully!",
+          description: "Your account has been created. You can now sign in with your credentials.",
         });
-        onSwitchToLogin();
+        // Clear form
+        setUsername('');
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        // Switch to login after a short delay
+        setTimeout(() => {
+          onSwitchToLogin();
+        }, 1500);
       } else {
+        console.log('❌ Registration failed - user exists');
         toast({
           title: "Registration failed",
-          description: "An account with this email already exists.",
+          description: "An account with this email already exists. Please use a different email or sign in.",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('❌ Registration error:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -95,6 +106,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
                 onChange={(e) => setUsername(e.target.value)}
                 className="pl-10 h-12 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300 font-['Inter']"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -113,6 +125,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10 h-12 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300 font-['Inter']"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -131,6 +144,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10 h-12 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300 font-['Inter']"
                 required
+                disabled={isLoading}
               />
               <Button
                 type="button"
@@ -138,6 +152,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
                 size="sm"
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-100 rounded-lg transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4 text-gray-400" />
@@ -162,13 +177,14 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="pl-10 h-12 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300 font-['Inter']"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 font-['Poppins']"
+            className="w-full h-12 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 font-['Poppins'] disabled:opacity-50 disabled:transform-none"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -188,6 +204,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
             <button
               onClick={onSwitchToLogin}
               className="text-violet-600 hover:text-violet-700 font-semibold hover:underline transition-colors duration-200"
+              disabled={isLoading}
             >
               Sign in
             </button>

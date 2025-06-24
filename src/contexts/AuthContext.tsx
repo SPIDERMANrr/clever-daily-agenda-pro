@@ -8,6 +8,7 @@ interface AuthContextType extends AuthState {
   logout: () => void;
   updateUserSchedule: (schedule: any[], userId?: string) => void;
   getAllUsers: () => User[];
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,41 +33,111 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: false,
     users: initialUsers
   });
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Initialize authentication state on app load
   useEffect(() => {
-    const savedAuth = localStorage.getItem('plannerAuth');
-    const savedUsers = localStorage.getItem('plannerUsers');
-    
-    if (savedAuth) {
-      const parsed = JSON.parse(savedAuth);
-      setAuthState(prev => ({ ...prev, user: parsed.user, isAuthenticated: true }));
-    }
-    
-    if (savedUsers) {
-      const parsedUsers = JSON.parse(savedUsers);
-      setAuthState(prev => ({ ...prev, users: parsedUsers }));
-    }
+    const initializeAuth = () => {
+      console.log('🔄 Initializing authentication...');
+      
+      try {
+        // Load users from localStorage or use initial users
+        const savedUsers = localStorage.getItem('plannerUsers');
+        let users = initialUsers;
+        
+        if (savedUsers) {
+          const parsedUsers = JSON.parse(savedUsers);
+          // Merge with initial users to ensure admin exists
+          const adminExists = parsedUsers.some((u: User) => u.email === 'admin@planner.com');
+          users = adminExists ? parsedUsers : [...parsedUsers, ...initialUsers];
+          console.log('👥 Loaded users from storage:', users.length);
+        } else {
+          // Save initial users to localStorage
+          localStorage.setItem('plannerUsers', JSON.stringify(initialUsers));
+          console.log('💾 Saved initial users to storage');
+        }
+
+        // Check for saved authentication state
+        const savedAuth = localStorage.getItem('plannerAuth');
+        if (savedAuth) {
+          const parsed = JSON.parse(savedAuth);
+          console.log('🔐 Found saved auth state for:', parsed.user?.email);
+          
+          // Verify user still exists in users list
+          const userExists = users.find((u: User) => u.id === parsed.user?.id);
+          if (userExists && parsed.isAuthenticated) {
+            console.log('✅ Restoring authenticated session');
+            setAuthState({
+              user: userExists, // Use fresh user data
+              isAuthenticated: true,
+              users
+            });
+          } else {
+            console.log('❌ Saved user not found, clearing auth');
+            localStorage.removeItem('plannerAuth');
+            setAuthState(prev => ({ ...prev, users }));
+          }
+        } else {
+          console.log('🔍 No saved auth found');
+          setAuthState(prev => ({ ...prev, users }));
+        }
+      } catch (error) {
+        console.error('❌ Error initializing auth:', error);
+        // Reset to safe state
+        localStorage.removeItem('plannerAuth');
+        localStorage.setItem('plannerUsers', JSON.stringify(initialUsers));
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          users: initialUsers
+        });
+      } finally {
+        setIsLoading(false);
+        console.log('✅ Authentication initialization complete');
+      }
+    };
+
+    initializeAuth();
   }, []);
 
+  const saveAuthState = (user: User, isAuthenticated: boolean) => {
+    const authData = { user, isAuthenticated, timestamp: Date.now() };
+    localStorage.setItem('plannerAuth', JSON.stringify(authData));
+    console.log('💾 Saved auth state for:', user.email);
+  };
+
+  const saveUsers = (users: User[]) => {
+    localStorage.setItem('plannerUsers', JSON.stringify(users));
+    console.log('💾 Saved users to storage:', users.length);
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
+    console.log('🔐 Attempting login for:', email);
+    
     const user = authState.users.find(u => u.email === email && u.password === password);
     
     if (user) {
+      console.log('✅ Login successful for:', email, 'Role:', user.role);
       const newAuthState = { user, isAuthenticated: true, users: authState.users };
       setAuthState(newAuthState);
-      localStorage.setItem('plannerAuth', JSON.stringify({ user, isAuthenticated: true }));
+      saveAuthState(user, true);
       return true;
     }
+    
+    console.log('❌ Login failed for:', email);
     return false;
   };
 
   const register = async (username: string, email: string, password: string, role: 'user' | 'admin' = 'user'): Promise<boolean> => {
+    console.log('📝 Attempting registration for:', email);
+    
     if (authState.users.find(u => u.email === email)) {
+      console.log('❌ Registration failed - user already exists:', email);
       return false; // User already exists
     }
 
     const newUser: User = {
-      id: `user_${Date.now()}`,
+      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       username,
       email,
       password,
@@ -86,18 +157,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const updatedUsers = [...authState.users, newUser];
     setAuthState(prev => ({ ...prev, users: updatedUsers }));
-    localStorage.setItem('plannerUsers', JSON.stringify(updatedUsers));
+    saveUsers(updatedUsers);
+    
+    console.log('✅ Registration successful for:', email);
     return true;
   };
 
   const logout = () => {
+    console.log('🚪 Logging out user:', authState.user?.email);
     setAuthState(prev => ({ ...prev, user: null, isAuthenticated: false }));
     localStorage.removeItem('plannerAuth');
+    console.log('✅ Logout complete');
   };
 
   const updateUserSchedule = (schedule: any[], userId?: string) => {
     const targetUserId = userId || authState.user?.id;
-    if (!targetUserId) return;
+    if (!targetUserId) {
+      console.log('❌ No target user ID for schedule update');
+      return;
+    }
+
+    console.log('📅 Updating schedule for user:', targetUserId);
 
     const updatedUsers = authState.users.map(user => {
       if (user.id === targetUserId) {
@@ -110,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (user.id === authState.user?.id) {
           setAuthState(prev => ({ ...prev, user: updatedUser }));
-          localStorage.setItem('plannerAuth', JSON.stringify({ user: updatedUser, isAuthenticated: true }));
+          saveAuthState(updatedUser, true);
         }
         
         return updatedUser;
@@ -119,10 +199,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     setAuthState(prev => ({ ...prev, users: updatedUsers }));
-    localStorage.setItem('plannerUsers', JSON.stringify(updatedUsers));
+    saveUsers(updatedUsers);
+    console.log('✅ Schedule updated successfully');
   };
 
   const getAllUsers = () => authState.users;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-lg">Loading your session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{
@@ -131,7 +223,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       register,
       logout,
       updateUserSchedule,
-      getAllUsers
+      getAllUsers,
+      isLoading
     }}>
       {children}
     </AuthContext.Provider>
