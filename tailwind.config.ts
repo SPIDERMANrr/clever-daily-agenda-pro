@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -19,6 +20,9 @@ export default {
 		},
 		extend: {
 			colors: {
+				'brand-primary': '#d43324',
+				'brand-text': '#000000',
+				'brand-accent': '#0d1785',
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',

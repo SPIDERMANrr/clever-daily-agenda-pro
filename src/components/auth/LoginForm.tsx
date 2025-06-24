@@ -48,9 +48,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto backdrop-blur-sm bg-white/95 shadow-2xl border-0 rounded-2xl overflow-hidden">
+    <Card className="w-full max-w-md mx-auto backdrop-blur-sm bg-white/95 shadow-2xl border-2 border-brand-accent rounded-2xl overflow-hidden card">
       <CardHeader className="space-y-1 pb-6 pt-8 px-8">
-        <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent font-['Poppins']">
+        <CardTitle className="text-3xl font-bold text-center text-brand-accent font-['Poppins']">
           Welcome Back
         </CardTitle>
         <CardDescription className="text-center text-gray-600 font-['Inter'] text-lg">
@@ -60,18 +60,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       <CardContent className="px-8 pb-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-semibold text-gray-700 font-['Inter']">
+            <label htmlFor="email" className="text-sm font-semibold text-brand-accent font-['Inter']">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-brand-accent h-5 w-5" />
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-12 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300 font-['Inter']"
+                className="pl-10 h-12 rounded-xl border-2 border-brand-accent focus:border-brand-primary focus:ring-4 focus:ring-red-200 transition-all duration-300 font-['Inter']"
                 required
                 disabled={isLoading}
               />
@@ -79,18 +79,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-semibold text-gray-700 font-['Inter']">
+            <label htmlFor="password" className="text-sm font-semibold text-brand-accent font-['Inter']">
               Password
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-brand-accent h-5 w-5" />
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 h-12 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-200 transition-all duration-300 font-['Inter']"
+                className="pl-10 pr-10 h-12 rounded-xl border-2 border-brand-accent focus:border-brand-primary focus:ring-4 focus:ring-red-200 transition-all duration-300 font-['Inter']"
                 required
                 disabled={isLoading}
               />
@@ -103,9 +103,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
                 disabled={isLoading}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-gray-400" />
+                  <EyeOff className="h-4 w-4 text-brand-accent" />
                 ) : (
-                  <Eye className="h-4 w-4 text-gray-400" />
+                  <Eye className="h-4 w-4 text-brand-accent" />
                 )}
               </Button>
             </div>
@@ -113,7 +113,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 font-['Poppins'] disabled:opacity-50 disabled:transform-none"
+            className="w-full h-12 rounded-xl bg-brand-primary hover:bg-brand-accent text-white font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 font-['Poppins'] disabled:opacity-50 disabled:transform-none btn-primary"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -132,7 +132,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
             Don't have an account?{' '}
             <button
               onClick={onSwitchToRegister}
-              className="text-violet-600 hover:text-violet-700 font-semibold hover:underline transition-colors duration-200"
+              className="text-brand-primary hover:text-brand-accent font-semibold hover:underline transition-colors duration-200"
               disabled={isLoading}
             >
               Register here
@@ -143,7 +143,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-500 font-['Inter']">
             Need help?{' '}
-            <span className="text-violet-600 hover:text-violet-700 font-semibold cursor-pointer hover:underline transition-colors duration-200">
+            <span className="text-brand-primary hover:text-brand-accent font-semibold cursor-pointer hover:underline transition-colors duration-200">
               Contact support
             </span>
           </p>

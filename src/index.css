@@ -7,89 +7,91 @@
 
 @layer base {
   :root {
+    /* Custom Brand Color Palette */
+    --color-primary: #d43324;
+    --color-text: #000000;
+    --color-accent: #0d1785;
+    --bg-light: #ffffff;
+    --bg-dark: #f0f0f0;
+    
+    /* Updated Shadcn variables to use brand colors */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 0 0% 0%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 0%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 0 71% 50%; /* Primary Red */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 0 0% 94.1%;
+    --secondary-foreground: 0 0% 0%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 228 74% 30%; /* Deep Blue for muted text */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 228 89% 29%; /* Deep Blue */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 71% 50%; /* Primary Red for destructive actions */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 228 89% 29%; /* Deep Blue for borders */
+    --input: 228 89% 29%; /* Deep Blue for inputs */
+    --ring: 0 71% 50%; /* Primary Red for focus rings */
 
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 228 89% 29%; /* Deep Blue */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 95.9%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 228 89% 29%; /* Deep Blue */
+    --sidebar-ring: 0 71% 50%; /* Primary Red */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 0 71% 50%; /* Primary Red */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 17.5%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 17.5%;
+    --muted-foreground: 228 74% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 228 89% 29%; /* Deep Blue */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 71% 50%; /* Primary Red */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --border: 228 89% 29%; /* Deep Blue */
+    --input: 228 89% 29%; /* Deep Blue */
+    --ring: 0 71% 50%; /* Primary Red */
+    
+    --sidebar-background: 0 0% 10%;
+    --sidebar-foreground: 0 0% 95.9%;
+    --sidebar-primary: 228 89% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 0 0% 15.9%;
+    --sidebar-accent-foreground: 0 0% 95.9%;
+    --sidebar-border: 0 0% 15.9%;
+    --sidebar-ring: 0 71% 50%;
   }
 }
 
@@ -100,6 +102,75 @@
 
   body {
     @apply bg-background text-foreground;
+    color: var(--color-text);
+  }
+
+  /* Brand Color Utility Classes */
+  .text-brand-primary {
+    color: var(--color-primary);
+  }
+  
+  .text-brand-accent {
+    color: var(--color-accent);
+  }
+  
+  .bg-brand-primary {
+    background-color: var(--color-primary);
+  }
+  
+  .bg-brand-accent {
+    background-color: var(--color-accent);
+  }
+  
+  .border-brand-primary {
+    border-color: var(--color-primary);
+  }
+  
+  .border-brand-accent {
+    border-color: var(--color-accent);
+  }
+
+  /* Enhanced Button Styling */
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--color-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(212, 51, 36, 0.3);
+  }
+
+  /* Enhanced Heading Styling */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--color-accent);
+    font-weight: bold;
+  }
+
+  /* Enhanced Input Styling */
+  input, select, textarea {
+    border: 2px solid var(--color-accent);
+    color: var(--color-text);
+    transition: all 0.3s ease;
+  }
+  
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 8px rgba(212, 51, 36, 0.3);
+  }
+
+  /* Enhanced Label Styling */
+  label {
+    color: var(--color-accent);
+    font-weight: bold;
   }
 }
 
@@ -109,16 +180,16 @@
   font-weight: bold !important;
   font-size: 16px !important;
   padding: 6px 8px !important;
-  border: 1px solid #ccc !important;
+  border: 2px solid var(--color-accent) !important;
   border-radius: 6px !important;
   min-width: 130px !important;
+  color: var(--color-text) !important;
 }
 
 .time-field:focus {
   outline: none !important;
-  ring: 2px !important;
-  ring-color: #3b82f6 !important;
-  border-color: #3b82f6 !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 8px rgba(212, 51, 36, 0.3) !important;
 }
 
 /* Mobile responsiveness for time fields */
@@ -130,7 +201,7 @@
   }
 }
 
-/* Print area styling */
+/* Enhanced Print area styling */
 #print-area {
   font-family: 'Poppins', sans-serif !important;
   font-size: 14px !important;
@@ -140,17 +211,33 @@
 }
 
 #print-area th, #print-area td {
-  border: 1px solid #999 !important;
+  border: 1px solid var(--color-accent) !important;
   padding: 8px 12px !important;
   text-align: left !important;
+  color: var(--color-text) !important;
 }
 
 #print-area tr:nth-child(even) {
-  background-color: #f2f2f2 !important;
+  background-color: #f9f9f9 !important;
 }
 
 #print-area th {
-  background-color: #333 !important;
+  background-color: var(--color-accent) !important;
   color: white !important;
   text-transform: uppercase !important;
+  font-weight: bold !important;
+}
+
+/* Enhanced Card Styling */
+.card {
+  background: var(--bg-light);
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 4px 16px rgba(13, 23, 133, 0.1);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 24px rgba(13, 23, 133, 0.15);
+  transform: translateY(-2px);
 }
