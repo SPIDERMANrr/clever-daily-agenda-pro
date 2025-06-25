@@ -1,21 +1,18 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Download, FileText, Undo, Redo, Save, Plus, Trash, Sparkles } from 'lucide-react';
+import { Download, FileText, Undo, Redo, Save, Plus, Trash } from 'lucide-react';
 import { ScheduleItem } from '@/types/auth';
-import { AIChat } from './AIChat';
-import { AIScheduleItem } from '@/services/aiScheduleService';
-import { convertAIScheduleToScheduleItems, validateScheduleItems, detectScheduleConflicts } from '@/utils/scheduleConverter';
 
 export const DailyPlanner: React.FC = () => {
   const { user, updateUserSchedule } = useAuth();
   const [schedule, setSchedule] = useState<ScheduleItem[]>(user?.schedule || []);
   const [undoStack, setUndoStack] = useState<ScheduleItem[][]>([]);
   const [redoStack, setRedoStack] = useState<ScheduleItem[][]>([]);
-  const [showAIChat, setShowAIChat] = useState(false);
 
   useEffect(() => {
     if (user?.schedule) {
@@ -81,52 +78,6 @@ export const DailyPlanner: React.FC = () => {
   const pushToUndo = (currentSchedule: ScheduleItem[]) => {
     setUndoStack(prev => [...prev, [...currentSchedule]]);
     setRedoStack([]);
-  };
-
-  const handleAIScheduleGenerated = (aiSchedule: AIScheduleItem[]) => {
-    try {
-      const newScheduleItems = convertAIScheduleToScheduleItems(aiSchedule);
-      
-      if (!validateScheduleItems(newScheduleItems)) {
-        toast({
-          title: "Invalid schedule format",
-          description: "The AI generated an invalid schedule format. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const conflicts = detectScheduleConflicts(newScheduleItems);
-      if (conflicts.length > 0) {
-        toast({
-          title: "Schedule conflicts detected",
-          description: conflicts.join(', '),
-          variant: "destructive"
-        });
-      }
-
-      // Push current state to undo stack before applying AI changes
-      pushToUndo(schedule);
-      
-      // Apply the new AI-generated schedule with animation effect
-      setSchedule(newScheduleItems);
-      
-      // Hide the AI chat after successful generation
-      setShowAIChat(false);
-      
-      toast({
-        title: "AI Schedule Applied! ✨",
-        description: `Successfully generated ${newScheduleItems.length} schedule items.`,
-      });
-
-    } catch (error) {
-      console.error('Error applying AI schedule:', error);
-      toast({
-        title: "Error applying schedule",
-        description: "Failed to apply the AI-generated schedule. Please try again.",
-        variant: "destructive"
-      });
-    }
   };
 
   const handleTimeChange = (index: number, field: 'start' | 'end', value: string) => {
@@ -368,26 +319,10 @@ export const DailyPlanner: React.FC = () => {
       />
       
       <div className="container mx-auto p-6 space-y-6">
-        {/* AI Chat Section */}
-        {showAIChat && (
-          <div className="animate-fade-in">
-            <AIChat onScheduleGenerated={handleAIScheduleGenerated} />
-          </div>
-        )}
-
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-center">📅 DAILY SCHEDULE</CardTitle>
             <div className="flex flex-wrap gap-2 justify-center">
-              <Button 
-                onClick={() => setShowAIChat(!showAIChat)}
-                variant={showAIChat ? "default" : "outline"}
-                size="sm"
-                className={showAIChat ? "bg-blue-600 hover:bg-blue-700" : "hover:bg-blue-50 border-blue-200"}
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                🧠 Plan with AI
-              </Button>
               <Button onClick={handleUndo} disabled={undoStack.length === 0} variant="outline" size="sm">
                 <Undo className="h-4 w-4 mr-2" />
                 Undo
