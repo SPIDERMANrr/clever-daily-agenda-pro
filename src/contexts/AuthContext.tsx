@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState } from '@/types/auth';
 
+interface OTPData {
+  email: string;
+  otp: string;
+  expiresAt: number;
+  attempts: number;
+}
+
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   register: (username: string, email: string, password: string, role?: 'user' | 'admin') => Promise<boolean>;
@@ -9,6 +16,9 @@ interface AuthContextType extends AuthState {
   updateUserEmail: (newEmail: string) => Promise<boolean>;
   updateUserPassword: (newPassword: string) => Promise<boolean>;
   getAllUsers: () => User[];
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; message?: string }>;
+  verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; message?: string }>;
+  resetPassword: (email: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
   isLoading: boolean;
 }
 
@@ -35,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     users: initialUsers
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [otpData, setOtpData] = useState<OTPData | null>(null);
 
   // Initialize authentication state on app load
   useEffect(() => {
@@ -110,6 +121,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const saveUsers = (users: User[]) => {
     localStorage.setItem('plannerUsers', JSON.stringify(users));
     console.log('💾 Saved users to storage:', users.length);
+  };
+
+  const generateOTP = (): string => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
+  const simulateEmailSend = (email: string, otp: string): void => {
+    console.log(`📧 Simulated Email Sent to: ${email}`);
+    console.log(`🔐 OTP: ${otp}`);
+    console.log(`⏰ Expires in 5 minutes`);
+    
+    // In a real application, you would integrate with an email service like:
+    // - SendGrid
+    // - Mailgun
+    // - AWS SES
+    // - Nodemailer
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -283,6 +310,107 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getAllUsers = () => authState.users;
 
+  const requestPasswordReset = async (email: string): Promise<{ success: boolean; message?: string }> => {
+    console.log('🔐 Password reset requested for:', email);
+    
+    // Check if user exists
+    const user = authState.users.find(u => u.email === email);
+    if (!user) {
+      console.log('❌ User not found:', email);
+      return { success: false, message: 'User not found' };
+    }
+
+    // Generate OTP
+    const otp = generateOTP();
+    const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes from now
+
+    // Store OTP data
+    const newOtpData: OTPData = {
+      email,
+      otp,
+      expiresAt,
+      attempts: 0
+    };
+    
+    setOtpData(newOtpData);
+    
+    // Simulate sending email
+    simulateEmailSend(email, otp);
+    
+    console.log('✅ OTP generated and email sent');
+    return { success: true };
+  };
+
+  const verifyOTP = async (email: string, otp: string): Promise<{ success: boolean; message?: string }> => {
+    console.log('🔍 Verifying OTP for:', email);
+    
+    if (!otpData || otpData.email !== email) {
+      console.log('❌ No OTP data found for email:', email);
+      return { success: false, message: 'No OTP request found for this email' };
+    }
+
+    // Check if OTP has expired
+    if (Date.now() > otpData.expiresAt) {
+      console.log('❌ OTP expired for:', email);
+      setOtpData(null);
+      return { success: false, message: 'OTP has expired' };
+    }
+
+    // Increment attempts
+    const updatedOtpData = { ...otpData, attempts: otpData.attempts + 1 };
+    setOtpData(updatedOtpData);
+
+    // Check if too many attempts
+    if (updatedOtpData.attempts > 3) {
+      console.log('❌ Too many OTP attempts for:', email);
+      setOtpData(null);
+      return { success: false, message: 'Too many failed attempts. Please request a new OTP.' };
+    }
+
+    // Verify OTP
+    if (otpData.otp !== otp) {
+      console.log('❌ Invalid OTP for:', email);
+      return { success: false, message: 'Invalid OTP' };
+    }
+
+    console.log('✅ OTP verified successfully for:', email);
+    return { success: true };
+  };
+
+  const resetPassword = async (email: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+    console.log('🔒 Resetting password for:', email);
+    
+    if (!otpData || otpData.email !== email) {
+      console.log('❌ No verified OTP session found for:', email);
+      return { success: false, message: 'No verified session found. Please restart the process.' };
+    }
+
+    try {
+      const updatedUsers = authState.users.map(user => {
+        if (user.email === email) {
+          return {
+            ...user,
+            password: newPassword,
+            lastEdited: new Date().toISOString()
+          };
+        }
+        return user;
+      });
+
+      setAuthState(prev => ({ ...prev, users: updatedUsers }));
+      saveUsers(updatedUsers);
+      
+      // Clear OTP data after successful reset
+      setOtpData(null);
+      
+      console.log('✅ Password reset successfully for:', email);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Error resetting password:', error);
+      return { success: false, message: 'Failed to reset password' };
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 flex items-center justify-center">
@@ -304,6 +432,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateUserEmail,
       updateUserPassword,
       getAllUsers,
+      requestPasswordReset,
+      verifyOTP,
+      resetPassword,
       isLoading
     }}>
       {children}

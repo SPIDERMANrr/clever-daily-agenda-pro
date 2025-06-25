@@ -9,9 +9,10 @@ import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
+  onSwitchToForgotPassword: () => void;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -109,6 +110,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
                 )}
               </Button>
             </div>
+          </div>
+
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={onSwitchToForgotPassword}
+              className="text-sm text-brand-primary hover:text-brand-accent font-semibold hover:underline transition-colors duration-200"
+              disabled={isLoading}
+            >
+              Forgot Password?
+            </button>
           </div>
 
           <Button
