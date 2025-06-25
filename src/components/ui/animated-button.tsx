@@ -20,7 +20,7 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
 }) => {
   const [isClicked, setIsClicked] = React.useState(false);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (ripple) {
       setIsClicked(true);
       setTimeout(() => setIsClicked(false), 600);

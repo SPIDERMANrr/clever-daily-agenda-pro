@@ -6,18 +6,18 @@ import { toastSlideIn } from '@/utils/animations';
 import { CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 
 interface AnimatedToastProps extends ToastProps {
-  type?: 'success' | 'error' | 'warning' | 'info';
+  variant?: 'success' | 'error' | 'warning' | 'info';
   open?: boolean;
 }
 
 export const AnimatedToast: React.FC<AnimatedToastProps> = ({ 
   children, 
-  type = 'info',
+  variant = 'info',
   open = true,
   ...props 
 }) => {
   const getIcon = () => {
-    switch (type) {
+    switch (variant) {
       case 'success':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'error':
