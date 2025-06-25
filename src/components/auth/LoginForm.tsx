@@ -8,7 +8,6 @@ import { AnimatedForm } from '@/components/ui/animated-form';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import { fadeInUp } from '@/utils/animations';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -53,6 +52,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSwit
 
   return (
     <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
       whileHover={{
         y: -5,
         scale: 1.02,
@@ -63,7 +65,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSwit
           damping: 20
         }
       }}
-      variants={fadeInUp}
     >
       <Card className="w-full max-w-md mx-auto backdrop-blur-sm bg-white/95 shadow-2xl border-2 border-brand-accent rounded-2xl overflow-hidden card">
         <CardHeader className="space-y-1 pb-6 pt-8 px-8">

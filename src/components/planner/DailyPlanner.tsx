@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Download, FileText, Undo, Redo, Save, Plus, Trash } from 'lucide-react';
 import { ScheduleItem } from '@/types/auth';
-import { fadeInUp, staggerContainer, staggerItem, pulseAnimation } from '@/utils/animations';
 
 export const DailyPlanner: React.FC = () => {
   const { user, updateUserSchedule } = useAuth();
@@ -326,9 +325,9 @@ export const DailyPlanner: React.FC = () => {
       
       <motion.div 
         className="container mx-auto p-6 space-y-6"
-        variants={fadeInUp}
-        initial="initial"
-        animate="animate"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <motion.div 
           whileHover={{
@@ -353,41 +352,65 @@ export const DailyPlanner: React.FC = () => {
               </motion.div>
               <motion.div 
                 className="flex flex-wrap gap-2 justify-center"
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, staggerChildren: 0.1 }}
               >
-                <motion.div variants={staggerItem}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
                   <AnimatedButton onClick={handleUndo} disabled={undoStack.length === 0} variant="outline" size="sm">
                     <Undo className="h-4 w-4 mr-2" />
                     Undo
                   </AnimatedButton>
                 </motion.div>
-                <motion.div variants={staggerItem}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
                   <AnimatedButton onClick={handleRedo} disabled={redoStack.length === 0} variant="outline" size="sm">
                     <Redo className="h-4 w-4 mr-2" />
                     Redo
                   </AnimatedButton>
                 </motion.div>
-                <motion.div variants={staggerItem}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
                   <AnimatedButton onClick={handleAddRow} variant="outline" size="sm" ripple>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Row
                   </AnimatedButton>
                 </motion.div>
-                <motion.div variants={staggerItem}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
                   <AnimatedButton onClick={handleSave} variant="default" size="sm" ripple>
                     <Save className="h-4 w-4 mr-2" />
                     Save
                   </AnimatedButton>
                 </motion.div>
-                <motion.div variants={staggerItem}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                >
                   <AnimatedButton onClick={exportToPDF} variant="outline" size="sm">
                     <FileText className="h-4 w-4 mr-2" />
                     PDF
                   </AnimatedButton>
                 </motion.div>
-                <motion.div variants={staggerItem}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                >
                   <AnimatedButton onClick={exportToExcel} variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2" />
                     Excel
@@ -399,14 +422,16 @@ export const DailyPlanner: React.FC = () => {
               <div className="overflow-x-auto">
                 <motion.table 
                   className="w-full border-collapse border border-gray-300 rounded-lg overflow-hidden shadow-sm"
-                  variants={staggerContainer}
-                  initial="initial"
-                  animate="animate"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
                 >
                   <thead>
                     <motion.tr 
                       className="bg-gray-900 text-white"
-                      variants={staggerItem}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
                     >
                       <th className="border border-gray-300 p-3 text-left font-bold">TIMINGS</th>
                       <th className="border border-gray-300 p-3 text-left font-bold">PLAN</th>
@@ -419,10 +444,10 @@ export const DailyPlanner: React.FC = () => {
                         <motion.tr 
                           key={index} 
                           className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} transition-all duration-300 hover:bg-blue-50`}
-                          variants={staggerItem}
-                          initial="initial"
-                          animate="animate"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: -100 }}
+                          transition={{ delay: index * 0.1 }}
                           layout
                           whileHover={{ 
                             backgroundColor: "#dbeafe",
@@ -433,7 +458,14 @@ export const DailyPlanner: React.FC = () => {
                           <td className="border border-gray-300 p-2">
                             <motion.div 
                               className="flex gap-2 items-center"
-                              animate={editingRow === index ? pulseAnimation : {}}
+                              animate={editingRow === index ? {
+                                scale: [1, 1.05, 1],
+                                transition: {
+                                  duration: 0.6,
+                                  ease: "easeInOut",
+                                  times: [0, 0.5, 1]
+                                }
+                              } : {}}
                             >
                               <motion.input
                                 type="time"
