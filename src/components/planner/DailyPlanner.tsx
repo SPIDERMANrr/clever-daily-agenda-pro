@@ -1,18 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AnimatedButton } from '@/components/ui/animated-button';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Download, FileText, Undo, Redo, Save, Plus, Trash } from 'lucide-react';
 import { ScheduleItem } from '@/types/auth';
+import { fadeInUp, staggerContainer, staggerItem, pulseAnimation, cardHover } from '@/utils/animations';
 
 export const DailyPlanner: React.FC = () => {
   const { user, updateUserSchedule } = useAuth();
   const [schedule, setSchedule] = useState<ScheduleItem[]>(user?.schedule || []);
   const [undoStack, setUndoStack] = useState<ScheduleItem[][]>([]);
   const [redoStack, setRedoStack] = useState<ScheduleItem[][]>([]);
+  const [editingRow, setEditingRow] = useState<number | null>(null);
 
   useEffect(() => {
     if (user?.schedule) {
@@ -82,6 +85,9 @@ export const DailyPlanner: React.FC = () => {
 
   const handleTimeChange = (index: number, field: 'start' | 'end', value: string) => {
     if (!value) return;
+
+    setEditingRow(index);
+    setTimeout(() => setEditingRow(null), 300);
 
     pushToUndo(schedule);
     
@@ -318,110 +324,170 @@ export const DailyPlanner: React.FC = () => {
         }}
       />
       
-      <div className="container mx-auto p-6 space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">📅 DAILY SCHEDULE</CardTitle>
-            <div className="flex flex-wrap gap-2 justify-center">
-              <Button onClick={handleUndo} disabled={undoStack.length === 0} variant="outline" size="sm">
-                <Undo className="h-4 w-4 mr-2" />
-                Undo
-              </Button>
-              <Button onClick={handleRedo} disabled={redoStack.length === 0} variant="outline" size="sm">
-                <Redo className="h-4 w-4 mr-2" />
-                Redo
-              </Button>
-              <Button onClick={handleAddRow} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Row
-              </Button>
-              <Button onClick={handleSave} variant="default" size="sm">
-                <Save className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-              <Button onClick={exportToPDF} variant="outline" size="sm">
-                <FileText className="h-4 w-4 mr-2" />
-                PDF
-              </Button>
-              <Button onClick={exportToExcel} variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Excel
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300 rounded-lg overflow-hidden shadow-sm">
-                <thead>
-                  <tr className="bg-gray-900 text-white">
-                    <th className="border border-gray-300 p-3 text-left font-bold">TIMINGS</th>
-                    <th className="border border-gray-300 p-3 text-left font-bold">PLAN</th>
-                    <th className="border border-gray-300 p-3 text-center font-bold w-16">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {schedule.map((item, index) => (
-                    <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} transition-all duration-300 hover:bg-blue-50`}>
-                      <td className="border border-gray-300 p-2">
-                        <div className="flex gap-2 items-center">
-                          <input
-                            type="time"
-                            value={convertTo24Hour(item.start)}
-                            onChange={(e) => handleTimeChange(index, 'start', e.target.value)}
-                            className="time-field w-32 font-bold text-base px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            style={{
-                              minWidth: '130px',
-                              fontWeight: 'bold',
-                              fontSize: '16px',
-                              padding: '6px 8px',
-                              border: '1px solid #ccc',
-                              borderRadius: '6px'
-                            }}
-                          />
-                          <span className="text-gray-500 font-bold">-</span>
-                          <input
-                            type="time"
-                            value={convertTo24Hour(item.end)}
-                            onChange={(e) => handleTimeChange(index, 'end', e.target.value)}
-                            className="time-field w-32 font-bold text-base px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            style={{
-                              minWidth: '130px',
-                              fontWeight: 'bold',
-                              fontSize: '16px',
-                              padding: '6px 8px',
-                              border: '1px solid #ccc',
-                              borderRadius: '6px'
-                            }}
-                          />
-                        </div>
-                      </td>
-                      <td className="border border-gray-300 p-2">
-                        <Input
-                          value={item.task}
-                          onChange={(e) => handleTaskChange(index, e.target.value)}
-                          className="w-full border-0 focus:ring-0 focus:outline-none bg-transparent"
-                          placeholder="Enter your activity"
-                        />
-                      </td>
-                      <td className="border border-gray-300 p-2 text-center">
-                        <Button
-                          onClick={() => handleDeleteRow(index)}
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
-                          disabled={schedule.length <= 1}
+      <motion.div 
+        className="container mx-auto p-6 space-y-6"
+        variants={fadeInUp}
+        initial="initial"
+        animate="animate"
+      >
+        <motion.div whileHover={cardHover}>
+          <Card>
+            <CardHeader>
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <CardTitle className="text-2xl font-bold text-center">📅 DAILY SCHEDULE</CardTitle>
+              </motion.div>
+              <motion.div 
+                className="flex flex-wrap gap-2 justify-center"
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+              >
+                <motion.div variants={staggerItem}>
+                  <AnimatedButton onClick={handleUndo} disabled={undoStack.length === 0} variant="outline" size="sm">
+                    <Undo className="h-4 w-4 mr-2" />
+                    Undo
+                  </AnimatedButton>
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <AnimatedButton onClick={handleRedo} disabled={redoStack.length === 0} variant="outline" size="sm">
+                    <Redo className="h-4 w-4 mr-2" />
+                    Redo
+                  </AnimatedButton>
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <AnimatedButton onClick={handleAddRow} variant="outline" size="sm" ripple>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Row
+                  </AnimatedButton>
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <AnimatedButton onClick={handleSave} variant="default" size="sm" ripple>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save
+                  </AnimatedButton>
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <AnimatedButton onClick={exportToPDF} variant="outline" size="sm">
+                    <FileText className="h-4 w-4 mr-2" />
+                    PDF
+                  </AnimatedButton>
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <AnimatedButton onClick={exportToExcel} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Excel
+                  </AnimatedButton>
+                </motion.div>
+              </motion.div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <motion.table 
+                  className="w-full border-collapse border border-gray-300 rounded-lg overflow-hidden shadow-sm"
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                >
+                  <thead>
+                    <motion.tr 
+                      className="bg-gray-900 text-white"
+                      variants={staggerItem}
+                    >
+                      <th className="border border-gray-300 p-3 text-left font-bold">TIMINGS</th>
+                      <th className="border border-gray-300 p-3 text-left font-bold">PLAN</th>
+                      <th className="border border-gray-300 p-3 text-center font-bold w-16">ACTION</th>
+                    </motion.tr>
+                  </thead>
+                  <tbody>
+                    <AnimatePresence>
+                      {schedule.map((item, index) => (
+                        <motion.tr 
+                          key={index} 
+                          className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} transition-all duration-300 hover:bg-blue-50`}
+                          variants={staggerItem}
+                          initial="initial"
+                          animate="animate"
+                          exit={{ opacity: 0, x: -100 }}
+                          layout
+                          whileHover={{ 
+                            backgroundColor: "#dbeafe",
+                            scale: 1.01,
+                            transition: { duration: 0.2 }
+                          }}
                         >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                          <td className="border border-gray-300 p-2">
+                            <motion.div 
+                              className="flex gap-2 items-center"
+                              animate={editingRow === index ? pulseAnimation : {}}
+                            >
+                              <motion.input
+                                type="time"
+                                value={convertTo24Hour(item.start)}
+                                onChange={(e) => handleTimeChange(index, 'start', e.target.value)}
+                                className="time-field w-32 font-bold text-base px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                whileFocus={{ scale: 1.02 }}
+                                style={{
+                                  minWidth: '130px',
+                                  fontWeight: 'bold',
+                                  fontSize: '16px',
+                                  padding: '6px 8px',
+                                  border: '1px solid #ccc',
+                                  borderRadius: '6px'
+                                }}
+                              />
+                              <span className="text-gray-500 font-bold">-</span>
+                              <motion.input
+                                type="time"
+                                value={convertTo24Hour(item.end)}
+                                onChange={(e) => handleTimeChange(index, 'end', e.target.value)}
+                                className="time-field w-32 font-bold text-base px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                whileFocus={{ scale: 1.02 }}
+                                style={{
+                                  minWidth: '130px',
+                                  fontWeight: 'bold',
+                                  fontSize: '16px',
+                                  padding: '6px 8px',
+                                  border: '1px solid #ccc',
+                                  borderRadius: '6px'
+                                }}
+                              />
+                            </motion.div>
+                          </td>
+                          <td className="border border-gray-300 p-2">
+                            <motion.div whileFocus={{ scale: 1.01 }}>
+                              <Input
+                                value={item.task}
+                                onChange={(e) => handleTaskChange(index, e.target.value)}
+                                className="w-full border-0 focus:ring-0 focus:outline-none bg-transparent"
+                                placeholder="Enter your activity"
+                              />
+                            </motion.div>
+                          </td>
+                          <td className="border border-gray-300 p-2 text-center">
+                            <AnimatedButton
+                              onClick={() => handleDeleteRow(index)}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
+                              disabled={schedule.length <= 1}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </AnimatedButton>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  </tbody>
+                </motion.table>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
     </>
   );
 };
