@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Download, FileText, Undo, Redo, Save, Plus, Trash } from 'lucide-react';
 import { ScheduleItem } from '@/types/auth';
-import { fadeInUp, staggerContainer, staggerItem, pulseAnimation, cardHover } from '@/utils/animations';
+import { fadeInUp, staggerContainer, staggerItem, pulseAnimation } from '@/utils/animations';
 
 export const DailyPlanner: React.FC = () => {
   const { user, updateUserSchedule } = useAuth();
@@ -330,7 +330,18 @@ export const DailyPlanner: React.FC = () => {
         initial="initial"
         animate="animate"
       >
-        <motion.div whileHover={cardHover}>
+        <motion.div 
+          whileHover={{
+            y: -5,
+            scale: 1.02,
+            boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
+            transition: {
+              type: "spring",
+              stiffness: 300,
+              damping: 20
+            }
+          }}
+        >
           <Card>
             <CardHeader>
               <motion.div

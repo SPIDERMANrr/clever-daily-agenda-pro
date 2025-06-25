@@ -12,7 +12,7 @@ export const pageTransitions = {
     scale: 1,
     transition: {
       duration: 0.4,
-      ease: [0.25, 0.46, 0.45, 0.94]
+      ease: "easeOut"
     }
   },
   exit: { 
@@ -21,7 +21,7 @@ export const pageTransitions = {
     scale: 0.95,
     transition: {
       duration: 0.3,
-      ease: [0.25, 0.46, 0.45, 0.94]
+      ease: "easeOut"
     }
   }
 };
@@ -38,7 +38,7 @@ export const modalTransitions = {
     y: 0,
     transition: {
       duration: 0.3,
-      ease: [0.34, 1.56, 0.64, 1]
+      ease: "backOut"
     }
   },
   exit: { 
@@ -47,7 +47,7 @@ export const modalTransitions = {
     y: 50,
     transition: {
       duration: 0.2,
-      ease: [0.25, 0.46, 0.45, 0.94]
+      ease: "easeOut"
     }
   }
 };
@@ -56,7 +56,7 @@ export const buttonHover = {
   scale: 1.02,
   boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
   transition: {
-    type: "spring",
+    type: "spring" as const,
     stiffness: 400,
     damping: 10
   }
@@ -65,7 +65,7 @@ export const buttonHover = {
 export const buttonTap = {
   scale: 0.98,
   transition: {
-    type: "spring",
+    type: "spring" as const,
     stiffness: 400,
     damping: 17
   }
@@ -76,7 +76,7 @@ export const cardHover = {
   scale: 1.02,
   boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
   transition: {
-    type: "spring",
+    type: "spring" as const,
     stiffness: 300,
     damping: 20
   }
@@ -92,7 +92,7 @@ export const fadeInUp = {
     y: 0,
     transition: {
       duration: 0.4,
-      ease: [0.25, 0.46, 0.45, 0.94]
+      ease: "easeOut"
     }
   }
 };
@@ -107,7 +107,7 @@ export const slideInRight = {
     x: 0,
     transition: {
       duration: 0.4,
-      ease: [0.25, 0.46, 0.45, 0.94]
+      ease: "easeOut"
     }
   }
 };
@@ -159,7 +159,7 @@ export const toastSlideIn = {
     x: 0,
     scale: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 500,
       damping: 30
     }
@@ -192,7 +192,7 @@ export const staggerItem = {
     y: 0,
     transition: {
       duration: 0.4,
-      ease: [0.25, 0.46, 0.45, 0.94]
+      ease: "easeOut"
     }
   }
 };
