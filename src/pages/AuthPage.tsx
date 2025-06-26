@@ -1,127 +1,200 @@
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { LoginForm } from '@/components/auth/LoginForm';
-import { RegisterForm } from '@/components/auth/RegisterForm';
-import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
-import { pageTransitions, fadeInUp } from '@/utils/animations';
-
-type AuthView = 'login' | 'register' | 'forgot-password';
+import { AnimatedForm } from '@/components/ui/animated-form';
+import { AnimatedButton } from '@/components/ui/animated-button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+import { motion } from 'framer-motion';
+import { Loader2, Calendar, Users, Shield } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
-  const [currentView, setCurrentView] = useState<AuthView>('login');
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { login, register } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        const success = await login(email, password);
+        if (success) {
+          toast({
+            title: "Welcome back!",
+            description: "You have been successfully logged in.",
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: "Invalid email or password. Please try again.",
+            variant: "destructive"
+          });
+        }
+      } else {
+        if (!username.trim()) {
+          toast({
+            title: "Username required",
+            description: "Please enter a username.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        const success = await register(username, email, password);
+        if (success) {
+          toast({
+            title: "Account created!",
+            description: "Please check your email to verify your account.",
+          });
+        } else {
+          toast({
+            title: "Registration failed",
+            description: "An account with this email may already exist.",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <motion.div 
-      className="min-h-screen bg-gradient-to-br from-red-600 via-blue-800 to-black flex items-center justify-center p-4 relative overflow-hidden"
-      variants={pageTransitions}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-    >
-      {/* Background decoration */}
-      <div className="absolute inset-0 opacity-10">
-        <motion.div 
-          className="absolute top-1/4 left-1/4 w-96 h-96 bg-white rounded-full blur-3xl"
-          animate={{ 
-            scale: [1, 1.1, 1],
-            opacity: [0.1, 0.15, 0.1]
-          }}
-          transition={{ 
-            duration: 4, 
-            repeat: Infinity, 
-            ease: "easeInOut" 
-          }}
-        />
-        <motion.div 
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-300 rounded-full blur-3xl"
-          animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.1, 0.2, 0.1]
-          }}
-          transition={{ 
-            duration: 5, 
-            repeat: Infinity, 
-            ease: "easeInOut",
-            delay: 1
-          }}
-        />
-      </div>
-      
-      <div className="w-full max-w-md relative z-10">
-        {/* App Title */}
-        <motion.div 
-          className="text-center mb-8"
-          variants={fadeInUp}
-        >
-          <motion.h1 
-            className="text-4xl font-bold text-white mb-2 font-['Poppins']"
-            animate={{ 
-              textShadow: [
-                "0 0 10px rgba(255,255,255,0.5)",
-                "0 0 20px rgba(255,255,255,0.8)",
-                "0 0 10px rgba(255,255,255,0.5)"
-              ]
-            }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity, 
-              ease: "easeInOut" 
-            }}
-          >
-            Smart Scheduler
-          </motion.h1>
-          <motion.p 
-            className="text-white/80 text-lg font-['Inter']"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            Plan your perfect day
-          </motion.p>
-        </motion.div>
-        
-        <AnimatePresence mode="wait">
-          {currentView === 'login' && (
+    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-md"
+      >
+        <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
+          <CardHeader className="text-center pb-6">
             <motion.div
-              key="login"
-              variants={pageTransitions}
-              initial="initial"
-              animate="animate"
-              exit="exit"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
             >
-              <LoginForm 
-                onSwitchToRegister={() => setCurrentView('register')}
-                onSwitchToForgotPassword={() => setCurrentView('forgot-password')}
+              <CardTitle className="text-3xl font-bold text-gray-800 mb-2">
+                📅 Daily Planner
+              </CardTitle>
+              <p className="text-gray-600">
+                {isLogin ? 'Welcome back!' : 'Create your account'}
+              </p>
+            </motion.div>
+          </CardHeader>
+          
+          <CardContent>
+            <AnimatedForm onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Input
+                    type="text"
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required={!isLogin}
+                    className="bg-white/80"
+                  />
+                </motion.div>
+              )}
+              
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="bg-white/80"
               />
-            </motion.div>
-          )}
-          
-          {currentView === 'register' && (
+              
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="bg-white/80"
+              />
+              
+              <AnimatedButton
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+                ripple
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isLogin ? 'Signing in...' : 'Creating account...'}
+                  </>
+                ) : (
+                  isLogin ? 'Sign In' : 'Create Account'
+                )}
+              </AnimatedButton>
+            </AnimatedForm>
+
             <motion.div
-              key="register"
-              variants={pageTransitions}
-              initial="initial"
-              animate="animate"
-              exit="exit"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mt-6 text-center"
             >
-              <RegisterForm onSwitchToLogin={() => setCurrentView('login')} />
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-purple-600 hover:text-purple-800 font-medium transition-colors"
+              >
+                {isLogin 
+                  ? "Don't have an account? Sign up" 
+                  : "Already have an account? Sign in"
+                }
+              </button>
             </motion.div>
-          )}
-          
-          {currentView === 'forgot-password' && (
+
             <motion.div
-              key="forgot-password"
-              variants={pageTransitions}
-              initial="initial"
-              animate="animate"
-              exit="exit"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="mt-8 pt-6 border-t border-gray-200"
             >
-              <ForgotPasswordForm onBack={() => setCurrentView('login')} />
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                Features
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Calendar className="h-5 w-5 text-purple-600" />
+                  <span>Create and manage daily schedules</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Shield className="h-5 w-5 text-purple-600" />
+                  <span>Secure cloud storage</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Users className="h-5 w-5 text-purple-600" />
+                  <span>Export to PDF and Excel</span>
+                </div>
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
   );
 };

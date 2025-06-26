@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AuthState } from '@/types/auth';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { User, AuthState, ScheduleItem } from '@/types/auth';
+import { useTimetable } from '@/hooks/useTimetable';
 
 interface OTPData {
   email: string;
@@ -12,7 +15,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   register: (username: string, email: string, password: string, role?: 'user' | 'admin') => Promise<boolean>;
   logout: () => void;
-  updateUserSchedule: (schedule: any[], userId?: string) => void;
+  updateUserSchedule: (schedule: ScheduleItem[], userId?: string) => Promise<void>;
   updateUserEmail: (newEmail: string) => Promise<boolean>;
   updateUserPassword: (newPassword: string) => Promise<boolean>;
   getAllUsers: () => User[];
@@ -20,11 +23,24 @@ interface AuthContextType extends AuthState {
   verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; message?: string }>;
   resetPassword: (email: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
   isLoading: boolean;
+  session: Session | null;
+  supabaseUser: SupabaseUser | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users data - in production this would be a database
+// Default schedule for new users
+const defaultSchedule: ScheduleItem[] = [
+  { start: '6:00 AM', end: '9:00 AM', task: 'Morning Routine' },
+  { start: '9:00 AM', end: '12:00 PM', task: 'Work/Study' },
+  { start: '12:00 PM', end: '1:00 PM', task: 'Lunch Break' },
+  { start: '1:00 PM', end: '5:00 PM', task: 'Afternoon Work' },
+  { start: '5:00 PM', end: '7:00 PM', task: 'Exercise/Hobby' },
+  { start: '7:00 PM', end: '9:00 PM', task: 'Dinner & Family' },
+  { start: '9:00 PM', end: '10:00 PM', task: 'Personal Time' }
+];
+
+// Mock users data for local functionality
 const initialUsers: User[] = [
   {
     id: 'admin1',
@@ -32,7 +48,7 @@ const initialUsers: User[] = [
     email: 'admin@planner.com',
     password: 'admin123',
     role: 'admin',
-    schedule: [],
+    schedule: defaultSchedule,
     history: [],
     lastEdited: new Date().toISOString()
   }
@@ -44,73 +60,120 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: false,
     users: initialUsers
   });
+  const [session, setSession] = useState<Session | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [otpData, setOtpData] = useState<OTPData | null>(null);
+  const { fetchTimetable, saveTimetable } = useTimetable(supabaseUser?.id);
 
-  // Initialize authentication state on app load
+  // Initialize Supabase authentication
   useEffect(() => {
-    const initializeAuth = () => {
-      console.log('🔄 Initializing authentication...');
-      
-      try {
-        // Load users from localStorage or use initial users
-        const savedUsers = localStorage.getItem('plannerUsers');
-        let users = initialUsers;
+    console.log('🔄 Initializing Supabase authentication...');
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔐 Auth state changed:', event, session?.user?.email);
         
-        if (savedUsers) {
-          const parsedUsers = JSON.parse(savedUsers);
-          // Merge with initial users to ensure admin exists
-          const adminExists = parsedUsers.some((u: User) => u.email === 'admin@planner.com');
-          users = adminExists ? parsedUsers : [...parsedUsers, ...initialUsers];
-          console.log('👥 Loaded users from storage:', users.length);
-        } else {
-          // Save initial users to localStorage
-          localStorage.setItem('plannerUsers', JSON.stringify(initialUsers));
-          console.log('💾 Saved initial users to storage');
-        }
-
-        // Check for saved authentication state
-        const savedAuth = localStorage.getItem('plannerAuth');
-        if (savedAuth) {
-          const parsed = JSON.parse(savedAuth);
-          console.log('🔐 Found saved auth state for:', parsed.user?.email);
+        setSession(session);
+        setSupabaseUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Load user's schedule from Supabase
+          const schedule = await fetchTimetable();
+          const userSchedule = schedule || defaultSchedule;
           
-          // Verify user still exists in users list
-          const userExists = users.find((u: User) => u.id === parsed.user?.id);
-          if (userExists && parsed.isAuthenticated) {
-            console.log('✅ Restoring authenticated session');
-            setAuthState({
-              user: userExists, // Use fresh user data
-              isAuthenticated: true,
-              users
-            });
-          } else {
-            console.log('❌ Saved user not found, clearing auth');
-            localStorage.removeItem('plannerAuth');
-            setAuthState(prev => ({ ...prev, users }));
-          }
+          const user: User = {
+            id: session.user.id,
+            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            password: '', // Not stored for Supabase users
+            role: 'user', // Default role
+            schedule: userSchedule,
+            history: [],
+            lastEdited: new Date().toISOString()
+          };
+          
+          setAuthState({
+            user,
+            isAuthenticated: true,
+            users: initialUsers
+          });
         } else {
-          console.log('🔍 No saved auth found');
-          setAuthState(prev => ({ ...prev, users }));
-        }
-      } catch (error) {
-        console.error('❌ Error initializing auth:', error);
-        // Reset to safe state
-        localStorage.removeItem('plannerAuth');
-        localStorage.setItem('plannerUsers', JSON.stringify(initialUsers));
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          users: initialUsers
-        });
-      } finally {
-        setIsLoading(false);
-        console.log('✅ Authentication initialization complete');
-      }
-    };
+          // Initialize authentication state on app load for local users
+          const initializeAuth = () => {
+            console.log('🔄 Initializing local authentication...');
+            
+            try {
+              // Load users from localStorage or use initial users
+              const savedUsers = localStorage.getItem('plannerUsers');
+              let users = initialUsers;
+              
+              if (savedUsers) {
+                const parsedUsers = JSON.parse(savedUsers);
+                // Merge with initial users to ensure admin exists
+                const adminExists = parsedUsers.some((u: User) => u.email === 'admin@planner.com');
+                users = adminExists ? parsedUsers : [...parsedUsers, ...initialUsers];
+                console.log('👥 Loaded users from storage:', users.length);
+              } else {
+                // Save initial users to localStorage
+                localStorage.setItem('plannerUsers', JSON.stringify(initialUsers));
+                console.log('💾 Saved initial users to storage');
+              }
 
-    initializeAuth();
-  }, []);
+              // Check for saved authentication state
+              const savedAuth = localStorage.getItem('plannerAuth');
+              if (savedAuth) {
+                const parsed = JSON.parse(savedAuth);
+                console.log('🔐 Found saved auth state for:', parsed.user?.email);
+                
+                // Verify user still exists in users list
+                const userExists = users.find((u: User) => u.id === parsed.user?.id);
+                if (userExists && parsed.isAuthenticated) {
+                  console.log('✅ Restoring authenticated session');
+                  setAuthState({
+                    user: userExists, // Use fresh user data
+                    isAuthenticated: true,
+                    users
+                  });
+                } else {
+                  console.log('❌ Saved user not found, clearing auth');
+                  localStorage.removeItem('plannerAuth');
+                  setAuthState(prev => ({ ...prev, users }));
+                }
+              } else {
+                console.log('🔍 No saved auth found');
+                setAuthState(prev => ({ ...prev, users }));
+              }
+            } catch (error) {
+              console.error('❌ Error initializing auth:', error);
+              // Reset to safe state
+              localStorage.removeItem('plannerAuth');
+              localStorage.setItem('plannerUsers', JSON.stringify(initialUsers));
+              setAuthState({
+                user: null,
+                isAuthenticated: false,
+                users: initialUsers
+              });
+            }
+          };
+
+          initializeAuth();
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchTimetable]);
 
   const saveAuthState = (user: User, isAuthenticated: boolean) => {
     const authData = { user, isAuthenticated, timestamp: Date.now() };
@@ -142,10 +205,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log('🔐 Attempting login for:', email);
     
+    // Try Supabase login first
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        console.log('❌ Supabase login failed:', error.message);
+        // Fall back to local authentication
+      } else if (data.user) {
+        console.log('✅ Supabase login successful for:', email);
+        return true;
+      }
+    } catch (err) {
+      console.error('❌ Unexpected login error:', err);
+    }
+
+    // Local authentication fallback
     const user = authState.users.find(u => u.email === email && u.password === password);
     
     if (user) {
-      console.log('✅ Login successful for:', email, 'Role:', user.role);
+      console.log('✅ Local login successful for:', email, 'Role:', user.role);
       const newAuthState = { user, isAuthenticated: true, users: authState.users };
       setAuthState(newAuthState);
       saveAuthState(user, true);
@@ -156,9 +238,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
-  const register = async (username: string, email: string, password: string, role: 'user' | 'admin' = 'user'): Promise<boolean> => {
+  const register = async (username: string, email: string, password: string): Promise<boolean> => {
     console.log('📝 Attempting registration for:', email);
     
+    // Try Supabase registration first
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            username: username
+          }
+        }
+      });
+
+      if (error) {
+        console.log('❌ Supabase registration failed:', error.message);
+        // Fall back to local registration
+      } else if (data.user) {
+        console.log('✅ Supabase registration successful for:', email);
+        return true;
+      }
+    } catch (err) {
+      console.error('❌ Unexpected registration error:', err);
+    }
+
+    // Local registration fallback
     if (authState.users.find(u => u.email === email)) {
       console.log('❌ Registration failed - user already exists:', email);
       return false; // User already exists
@@ -169,16 +278,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       username,
       email,
       password,
-      role,
-      schedule: [
-        { start: '6:00 AM', end: '9:00 AM', task: 'Morning Routine' },
-        { start: '9:00 AM', end: '12:00 PM', task: 'Work/Study' },
-        { start: '12:00 PM', end: '1:00 PM', task: 'Lunch Break' },
-        { start: '1:00 PM', end: '5:00 PM', task: 'Afternoon Work' },
-        { start: '5:00 PM', end: '7:00 PM', task: 'Exercise/Hobby' },
-        { start: '7:00 PM', end: '9:00 PM', task: 'Dinner & Family' },
-        { start: '9:00 PM', end: '10:00 PM', task: 'Personal Time' }
-      ],
+      role: 'user',
+      schedule: defaultSchedule,
       history: [],
       lastEdited: new Date().toISOString()
     };
@@ -187,19 +288,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthState(prev => ({ ...prev, users: updatedUsers }));
     saveUsers(updatedUsers);
     
-    console.log('✅ Registration successful for:', email);
+    console.log('✅ Local registration successful for:', email);
     return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
     console.log('🚪 Logging out user:', authState.user?.email);
-    setAuthState(prev => ({ ...prev, user: null, isAuthenticated: false }));
-    localStorage.removeItem('plannerAuth');
-    console.log('✅ Logout complete');
+    
+    if (supabaseUser) {
+      try {
+        await supabase.auth.signOut();
+        console.log('✅ Supabase logout successful');
+      } catch (err) {
+        console.error('❌ Supabase logout error:', err);
+      }
+    } else {
+      // Local logout
+      setAuthState(prev => ({ ...prev, user: null, isAuthenticated: false }));
+      localStorage.removeItem('plannerAuth');
+      console.log('✅ Local logout complete');
+    }
   };
 
-  const updateUserSchedule = (schedule: any[], userId?: string) => {
+  const updateUserSchedule = async (schedule: ScheduleItem[], userId?: string): Promise<void> => {
     const targetUserId = userId || authState.user?.id;
+    
     if (!targetUserId) {
       console.log('❌ No target user ID for schedule update');
       return;
@@ -207,31 +320,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     console.log('📅 Updating schedule for user:', targetUserId);
 
-    const updatedUsers = authState.users.map(user => {
-      if (user.id === targetUserId) {
-        const updatedUser = {
-          ...user,
-          schedule,
-          history: [...user.history, user.schedule],
-          lastEdited: new Date().toISOString()
-        };
-        
-        if (user.id === authState.user?.id) {
-          setAuthState(prev => ({ ...prev, user: updatedUser }));
-          saveAuthState(updatedUser, true);
-        }
-        
-        return updatedUser;
+    // If this is a Supabase user, save to database
+    if (supabaseUser && targetUserId === supabaseUser.id) {
+      const success = await saveTimetable(schedule);
+      if (!success) {
+        return; // Error handling is done in the hook
       }
-      return user;
-    });
+    } else {
+      // Local user - update localStorage
+      const updatedUsers = authState.users.map(user => {
+        if (user.id === targetUserId) {
+          const updatedUser = {
+            ...user,
+            schedule,
+            history: [...user.history, user.schedule],
+            lastEdited: new Date().toISOString()
+          };
+          
+          if (user.id === authState.user?.id) {
+            setAuthState(prev => ({ ...prev, user: updatedUser }));
+            saveAuthState(updatedUser, true);
+          }
+          
+          return updatedUser;
+        }
+        return user;
+      });
 
-    setAuthState(prev => ({ ...prev, users: updatedUsers }));
-    saveUsers(updatedUsers);
+      setAuthState(prev => ({ ...prev, users: updatedUsers }));
+      saveUsers(updatedUsers);
+    }
+
+    // Update local state
+    if (authState.user && targetUserId === authState.user.id) {
+      const updatedUser = {
+        ...authState.user,
+        schedule,
+        history: [...authState.user.history, authState.user.schedule],
+        lastEdited: new Date().toISOString()
+      };
+      
+      setAuthState(prev => ({ ...prev, user: updatedUser }));
+    }
+
     console.log('✅ Schedule updated successfully');
   };
 
   const updateUserEmail = async (newEmail: string): Promise<boolean> => {
+    if (supabaseUser) {
+      try {
+        const { error } = await supabase.auth.updateUser({ email: newEmail });
+        return !error;
+      } catch {
+        return false;
+      }
+    }
+
+    // Local user email update
     if (!authState.user) {
       console.log('❌ No authenticated user for email update');
       return false;
@@ -274,6 +419,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUserPassword = async (newPassword: string): Promise<boolean> => {
+    if (supabaseUser) {
+      try {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        return !error;
+      } catch {
+        return false;
+      }
+    }
+
+    // Local user password update
     if (!authState.user) {
       console.log('❌ No authenticated user for password update');
       return false;
@@ -311,6 +466,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getAllUsers = () => authState.users;
 
   const requestPasswordReset = async (email: string): Promise<{ success: boolean; message?: string }> => {
+    // Try Supabase password reset first
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`
+      });
+      
+      if (error) {
+        console.log('❌ Supabase password reset failed:', error.message);
+        // Fall back to local OTP system
+      } else {
+        return { success: true };
+      }
+    } catch (err) {
+      console.error('❌ Supabase password reset error:', err);
+    }
+
+    // Local password reset with OTP
     console.log('🔐 Password reset requested for:', email);
     
     // Check if user exists
@@ -435,7 +607,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       requestPasswordReset,
       verifyOTP,
       resetPassword,
-      isLoading
+      isLoading,
+      session,
+      supabaseUser
     }}>
       {children}
     </AuthContext.Provider>
