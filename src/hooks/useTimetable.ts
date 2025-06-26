@@ -12,6 +12,38 @@ export interface TimetableData {
   updated_at: string;
 }
 
+// Type guard to validate if data is a valid ScheduleItem array
+const isScheduleItemArray = (data: unknown): data is ScheduleItem[] => {
+  if (!Array.isArray(data)) {
+    return false;
+  }
+  
+  return data.every((item) => {
+    return (
+      typeof item === 'object' &&
+      item !== null &&
+      typeof (item as any).start === 'string' &&
+      typeof (item as any).end === 'string' &&
+      typeof (item as any).task === 'string'
+    );
+  });
+};
+
+// Safely cast Json data to ScheduleItem array with validation
+const parseScheduleData = (jsonData: unknown): ScheduleItem[] | null => {
+  try {
+    if (isScheduleItemArray(jsonData)) {
+      return jsonData;
+    }
+    
+    console.warn('Invalid schedule data format:', jsonData);
+    return null;
+  } catch (error) {
+    console.error('Error parsing schedule data:', error);
+    return null;
+  }
+};
+
 export const useTimetable = (userId?: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,8 +75,15 @@ export const useTimetable = (userId?: string) => {
 
       if (data) {
         console.log('Timetable loaded successfully:', data);
-        // Type assertion with proper validation
-        return data.data as ScheduleItem[];
+        
+        // Safely parse the schedule data with runtime validation
+        const parsedData = parseScheduleData(data.data);
+        if (parsedData === null) {
+          setError('Schedule data is corrupted or in an invalid format');
+          return null;
+        }
+        
+        return parsedData;
       }
 
       return null;
@@ -84,7 +123,7 @@ export const useTimetable = (userId?: string) => {
         const { error } = await supabase
           .from('timetables')
           .update({ 
-            data: scheduleData as any, // Type assertion to handle Json conversion
+            data: scheduleData as unknown,
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId);
@@ -100,7 +139,7 @@ export const useTimetable = (userId?: string) => {
           .from('timetables')
           .insert({
             user_id: userId,
-            data: scheduleData as any // Type assertion to handle Json conversion
+            data: scheduleData as unknown
           });
 
         if (error) {
