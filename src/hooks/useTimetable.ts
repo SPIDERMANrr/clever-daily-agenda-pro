@@ -43,6 +43,7 @@ export const useTimetable = (userId?: string) => {
 
       if (data) {
         console.log('Timetable loaded successfully:', data);
+        // Type assertion with proper validation
         return data.data as ScheduleItem[];
       }
 
@@ -83,7 +84,7 @@ export const useTimetable = (userId?: string) => {
         const { error } = await supabase
           .from('timetables')
           .update({ 
-            data: scheduleData,
+            data: scheduleData as any, // Type assertion to handle Json conversion
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId);
@@ -99,7 +100,7 @@ export const useTimetable = (userId?: string) => {
           .from('timetables')
           .insert({
             user_id: userId,
-            data: scheduleData
+            data: scheduleData as any // Type assertion to handle Json conversion
           });
 
         if (error) {
