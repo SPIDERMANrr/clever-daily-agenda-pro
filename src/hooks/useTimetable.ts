@@ -123,7 +123,7 @@ export const useTimetable = (userId?: string) => {
         const { error } = await supabase
           .from('timetables')
           .update({ 
-            data: scheduleData as unknown,
+            data: scheduleData,
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId);
@@ -139,7 +139,7 @@ export const useTimetable = (userId?: string) => {
           .from('timetables')
           .insert({
             user_id: userId,
-            data: scheduleData as unknown
+            data: scheduleData
           });
 
         if (error) {
