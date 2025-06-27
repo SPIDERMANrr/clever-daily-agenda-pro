@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,25 +43,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('user_id', session.user.id)
             .single();
 
-          const userData = timetableData?.data as LocalUser || {
-            id: session.user.id,
-            username: session.user.email?.split('@')[0] || 'User',
-            email: session.user.email || '',
-            password: '', 
-            role: session.user.email === 'admin@planner.com' ? 'admin' : 'user',
-            schedule: [
-              { start: '6:00 AM', end: '7:00 AM', task: 'Morning Exercise' },
-              { start: '7:00 AM', end: '8:00 AM', task: 'Breakfast' },
-              { start: '8:00 AM', end: '12:00 PM', task: 'Work/Study' },
-              { start: '12:00 PM', end: '1:00 PM', task: 'Lunch Break' },
-              { start: '1:00 PM', end: '5:00 PM', task: 'Afternoon Work' },
-              { start: '5:00 PM', end: '6:00 PM', task: 'Recreation' },
-              { start: '6:00 PM', end: '7:00 PM', task: 'Dinner' },
-              { start: '7:00 PM', end: '10:00 PM', task: 'Personal Time' }
-            ],
-            history: [],
-            lastEdited: new Date().toISOString()
-          };
+          // Properly cast the Json data to LocalUser with validation
+          let userData: LocalUser;
+          if (timetableData?.data && typeof timetableData.data === 'object' && timetableData.data !== null) {
+            userData = timetableData.data as unknown as LocalUser;
+          } else {
+            userData = {
+              id: session.user.id,
+              username: session.user.email?.split('@')[0] || 'User',
+              email: session.user.email || '',
+              password: '', 
+              role: session.user.email === 'admin@planner.com' ? 'admin' : 'user',
+              schedule: [
+                { start: '6:00 AM', end: '7:00 AM', task: 'Morning Exercise' },
+                { start: '7:00 AM', end: '8:00 AM', task: 'Breakfast' },
+                { start: '8:00 AM', end: '12:00 PM', task: 'Work/Study' },
+                { start: '12:00 PM', end: '1:00 PM', task: 'Lunch Break' },
+                { start: '1:00 PM', end: '5:00 PM', task: 'Afternoon Work' },
+                { start: '5:00 PM', end: '6:00 PM', task: 'Recreation' },
+                { start: '6:00 PM', end: '7:00 PM', task: 'Dinner' },
+                { start: '7:00 PM', end: '10:00 PM', task: 'Personal Time' }
+              ],
+              history: [],
+              lastEdited: new Date().toISOString()
+            };
+          }
 
           setUser(userData);
           setIsAuthenticated(true);
@@ -119,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Admin user created, confirming email...');
         
         // Insert admin user data into timetables
-        const adminData = {
+        const adminData: LocalUser = {
           id: data.user.id,
           username: 'admin',
           email: 'admin@planner.com',
@@ -143,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('timetables')
           .insert({
             user_id: data.user.id,
-            data: adminData as any
+            data: adminData as unknown as any
           });
 
         console.log('Admin user created successfully');
@@ -223,8 +228,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
-        // Create user data in timetables
-        const userData = {
+        // Create user data in timetables - properly cast to Json
+        const userData: LocalUser = {
           id: data.user.id,
           username,
           email,
@@ -248,7 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('timetables')
           .insert({
             user_id: data.user.id,
-            data: userData as any
+            data: userData as unknown as any
           });
 
         return true;
@@ -278,12 +283,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastEdited: new Date().toISOString()
     };
 
-    // Update in Supabase
+    // Update in Supabase - properly cast to Json
     const { error } = await supabase
       .from('timetables')
       .upsert({
         user_id: supabaseUser.id,
-        data: updatedUser as any
+        data: updatedUser as unknown as any
       });
 
     if (error) {
@@ -317,7 +322,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('timetables')
           .upsert({
             user_id: supabaseUser.id,
-            data: updatedUser as any
+            data: updatedUser as unknown as any
           });
       }
 
@@ -351,7 +356,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('timetables')
           .upsert({
             user_id: supabaseUser.id,
-            data: updatedUser as any
+            data: updatedUser as unknown as any
           });
       }
 
