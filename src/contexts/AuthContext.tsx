@@ -3,7 +3,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { User as LocalUser, ScheduleItem } from '@/types/auth';
-import { getStoredUsers, storeUsers } from '@/utils/storage';
 
 interface AuthContextType {
   user: LocalUser | null;
@@ -14,6 +13,11 @@ interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUserSchedule: (schedule: ScheduleItem[]) => Promise<void>;
+  updateUserEmail: (newEmail: string) => Promise<boolean>;
+  updateUserPassword: (newPassword: string) => Promise<boolean>;
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; message?: string }>;
+  verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; message?: string }>;
+  resetPassword: (email: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
   getAllUsers: () => LocalUser[];
 }
 
@@ -40,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('user_id', session.user.id)
             .single();
 
-          const userData = timetableData?.data || {
+          const userData = timetableData?.data as LocalUser || {
             id: session.user.id,
             username: session.user.email?.split('@')[0] || 'User',
             email: session.user.email || '',
@@ -139,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('timetables')
           .insert({
             user_id: data.user.id,
-            data: adminData
+            data: adminData as any
           });
 
         console.log('Admin user created successfully');
@@ -244,7 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('timetables')
           .insert({
             user_id: data.user.id,
-            data: userData
+            data: userData as any
           });
 
         return true;
@@ -279,7 +283,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .from('timetables')
       .upsert({
         user_id: supabaseUser.id,
-        data: updatedUser
+        data: updatedUser as any
       });
 
     if (error) {
@@ -288,6 +292,124 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setUser(updatedUser);
+  };
+
+  const updateUserEmail = async (newEmail: string): Promise<boolean> => {
+    try {
+      if (!supabaseUser) return false;
+
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail
+      });
+
+      if (error) {
+        console.error('Error updating email:', error);
+        return false;
+      }
+
+      // Update local user state
+      if (user) {
+        const updatedUser = { ...user, email: newEmail };
+        setUser(updatedUser);
+        
+        // Update in database
+        await supabase
+          .from('timetables')
+          .upsert({
+            user_id: supabaseUser.id,
+            data: updatedUser as any
+          });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating email:', error);
+      return false;
+    }
+  };
+
+  const updateUserPassword = async (newPassword: string): Promise<boolean> => {
+    try {
+      if (!supabaseUser) return false;
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        console.error('Error updating password:', error);
+        return false;
+      }
+
+      // Update local user state
+      if (user) {
+        const updatedUser = { ...user, password: newPassword };
+        setUser(updatedUser);
+        
+        // Update in database
+        await supabase
+          .from('timetables')
+          .upsert({
+            user_id: supabaseUser.id,
+            data: updatedUser as any
+          });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating password:', error);
+      return false;
+    }
+  };
+
+  const requestPasswordReset = async (email: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) {
+        return { success: false, message: error.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: 'An unexpected error occurred' };
+    }
+  };
+
+  const verifyOTP = async (email: string, otp: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'recovery'
+      });
+
+      if (error) {
+        return { success: false, message: error.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: 'An unexpected error occurred' };
+    }
+  };
+
+  const resetPassword = async (email: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        return { success: false, message: error.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: 'An unexpected error occurred' };
+    }
   };
 
   const getAllUsers = (): LocalUser[] => {
@@ -306,6 +428,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       register,
       logout,
       updateUserSchedule,
+      updateUserEmail,
+      updateUserPassword,
+      requestPasswordReset,
+      verifyOTP,
+      resetPassword,
       getAllUsers,
     }}>
       {children}

@@ -85,3 +85,7 @@ export const StorageService = {
     }
   }
 };
+
+// Legacy exports for backward compatibility (but not used in AuthContext anymore)
+export const getStoredUsers = StorageService.getUsers;
+export const storeUsers = StorageService.saveUsers;
