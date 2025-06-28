@@ -7,7 +7,7 @@ import { AnimatedButton } from '@/components/ui/animated-button';
 import { AnimatedForm } from '@/components/ui/animated-form';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -19,62 +19,30 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSwit
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loginError, setLoginError] = useState<string>('');
   const { login } = useAuth();
-
-  const getDetailedErrorMessage = (email: string, password: string, isAdmin: boolean) => {
-    if (isAdmin) {
-      return "Admin login failed. The admin account may not exist or the credentials are incorrect. Please contact the system administrator.";
-    }
-    
-    if (!email || !password) {
-      return "Please enter both email and password.";
-    }
-    
-    if (password.length < 6) {
-      return "Password must be at least 6 characters long.";
-    }
-    
-    return "Invalid email or password. Please check your credentials and try again. If you don't have an account, please register first.";
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setLoginError('');
 
     try {
-      const isAdminLogin = email === 'admin@planner.com';
-      
-      if (isAdminLogin) {
-        console.log('Admin login attempt detected');
-      }
-
       const success = await login(email, password);
-      
       if (success) {
         toast({
           title: "Welcome back!",
-          description: isAdminLogin ? "Admin login successful." : "You have been logged in successfully.",
+          description: "You have been logged in successfully.",
         });
       } else {
-        const errorMessage = getDetailedErrorMessage(email, password, isAdminLogin);
-        setLoginError(errorMessage);
-        
         toast({
           title: "Login failed",
-          description: errorMessage,
+          description: "Invalid email or password. Please check your credentials and try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Login error:', error);
-      const errorMessage = "An unexpected error occurred. Please try again.";
-      setLoginError(errorMessage);
-      
       toast({
         title: "Error",
-        description: errorMessage,
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -121,17 +89,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSwit
         </CardHeader>
         <CardContent className="px-8 pb-8">
           <AnimatedForm onSubmit={handleSubmit} className="space-y-6">
-            {loginError && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"
-              >
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{loginError}</span>
-              </motion.div>
-            )}
-
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-semibold text-brand-accent font-['Inter']">
                 Email Address
@@ -148,10 +105,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSwit
                   type="email"
                   placeholder="Enter your email"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setLoginError('');
-                  }}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 h-12 rounded-xl border-2 border-brand-accent focus:border-brand-primary focus:ring-4 focus:ring-red-200 transition-all duration-300 font-['Inter']"
                   required
                   disabled={isLoading}
@@ -175,10 +129,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSwit
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setLoginError('');
-                  }}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 h-12 rounded-xl border-2 border-brand-accent focus:border-brand-primary focus:ring-4 focus:ring-red-200 transition-all duration-300 font-['Inter']"
                   required
                   disabled={isLoading}
@@ -252,18 +203,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSwit
               </span>
             </p>
           </div>
-
-          {/* Admin Login Helper */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center"
-          >
-            <p className="text-sm text-blue-700 font-['Inter']">
-              <strong>Admin Access:</strong> Use admin@planner.com / admin123
-            </p>
-          </motion.div>
         </CardContent>
       </Card>
     </motion.div>

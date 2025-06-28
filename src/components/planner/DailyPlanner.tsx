@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
@@ -5,35 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AnimatedButton } from '@/components/ui/animated-button';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { useTimetable } from '@/hooks/useTimetable';
-import { Download, FileText, Undo, Redo, Save, Plus, Trash, Loader2 } from 'lucide-react';
+import { Download, FileText, Undo, Redo, Save, Plus, Trash } from 'lucide-react';
 import { ScheduleItem } from '@/types/auth';
 
 export const DailyPlanner: React.FC = () => {
-  const { user, updateUserSchedule, supabaseUser } = useAuth();
+  const { user, updateUserSchedule } = useAuth();
   const [schedule, setSchedule] = useState<ScheduleItem[]>(user?.schedule || []);
   const [undoStack, setUndoStack] = useState<ScheduleItem[][]>([]);
   const [redoStack, setRedoStack] = useState<ScheduleItem[][]>([]);
   const [editingRow, setEditingRow] = useState<number | null>(null);
-  
-  const { isLoading, isSaving, error, clearError } = useTimetable(supabaseUser?.id);
 
   useEffect(() => {
     if (user?.schedule) {
       setSchedule(user.schedule);
     }
   }, [user]);
-
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: "Error",
-        description: error,
-        variant: "destructive"
-      });
-      clearError();
-    }
-  }, [error, clearError]);
 
   // Convert 12-hour format to 24-hour format for input[type="time"]
   const convertTo24Hour = (time12h: string): string => {
@@ -232,21 +219,12 @@ export const DailyPlanner: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
-    try {
-      await updateUserSchedule(schedule);
-      toast({
-        title: "Schedule saved!",
-        description: supabaseUser ? "Your daily planner has been saved to the cloud." : "Your daily planner has been updated locally.",
-      });
-    } catch (error) {
-      console.error('Save error:', error);
-      toast({
-        title: "Save failed",
-        description: "There was an error saving your schedule. Please try again.",
-        variant: "destructive"
-      });
-    }
+  const handleSave = () => {
+    updateUserSchedule(schedule);
+    toast({
+      title: "Schedule saved!",
+      description: "Your daily planner has been updated successfully.",
+    });
   };
 
   const exportToPDF = async () => {
@@ -330,17 +308,6 @@ export const DailyPlanner: React.FC = () => {
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6 flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading your schedule...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       {/* Hidden print area for PDF export */}
@@ -381,14 +348,7 @@ export const DailyPlanner: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <CardTitle className="text-2xl font-bold text-center">
-                  📅 DAILY SCHEDULE
-                  {supabaseUser && (
-                    <span className="text-sm font-normal text-gray-500 block mt-1">
-                      Synced with cloud storage
-                    </span>
-                  )}
-                </CardTitle>
+                <CardTitle className="text-2xl font-bold text-center">📅 DAILY SCHEDULE</CardTitle>
               </motion.div>
               <motion.div 
                 className="flex flex-wrap gap-2 justify-center"
@@ -431,18 +391,9 @@ export const DailyPlanner: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 }}
                 >
-                  <AnimatedButton onClick={handleSave} variant="default" size="sm" ripple disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save
-                      </>
-                    )}
+                  <AnimatedButton onClick={handleSave} variant="default" size="sm" ripple>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save
                   </AnimatedButton>
                 </motion.div>
                 <motion.div
